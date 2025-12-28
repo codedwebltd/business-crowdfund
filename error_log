@@ -1,0 +1,11 @@
+[24-Dec-2025 12:26:38 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method Illuminate\Container\Container::publicPath() in /home/qiviotalk/business.qiviotalk.online/vendor/laravel/framework/src/Illuminate/Foundation/helpers.php:629
+Stack trace:
+#0 /home/qiviotalk/business.qiviotalk.online/app/Helpers/CountryHelper.php(15): public_path('countries/world...')
+#1 /home/qiviotalk/business.qiviotalk.online/app/Helpers/CountryHelper.php(47): App\Helpers\CountryHelper::loadCountries()
+#2 Command line code(1): App\Helpers\CountryHelper::getByAlpha3('GBR')
+#3 {main}
+  thrown in /home/qiviotalk/business.qiviotalk.online/vendor/laravel/framework/src/Illuminate/Foundation/helpers.php on line 629
+[25-Dec-2025 07:53:14 UTC] PHP Fatal error:  Uncaught Error: Undefined constant "__dirname__" in /home/qiviotalk/business.qiviotalk.online/test-user-wallet.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/qiviotalk/business.qiviotalk.online/test-user-wallet.php on line 3

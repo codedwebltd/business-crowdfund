@@ -1,0 +1,174 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Jobs\AssignTaskBatch;
+use App\Models\GlobalSetting;
+use App\Models\Plan;
+use App\Models\TaskTemplate;
+use App\Models\User;
+use App\Models\UserTask;
+use App\Services\NotificationService;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+class AssignDailyTasks extends Command
+{
+    protected $signature = 'tasks:assign-daily';
+    protected $description = 'Assign daily tasks to all active users based on their plan';
+
+    public function handle()
+    {
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        $this->info('🎯 Daily Task Assignment');
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        $this->newLine();
+
+        $startTime = microtime(true);
+
+        // Get global settings
+        $settings = GlobalSetting::first();
+        $dailyLimits = $settings->daily_task_limits ?? ['basic' => 8, 'premium' => 15, 'vip' => 25];
+        $distribution = $settings->task_distribution_percentages ?? ['surveys' => 60, 'videos' => 20, 'syncs' => 15, 'reviews' => 5];
+
+        // Get all active users
+        $users = User::where('status', 'active')->get();
+
+        $this->info("Found {$users->count()} active users");
+        $this->newLine();
+
+        $assigned = 0;
+        $errors = 0;
+        $batchJobs = [];
+        $userTaskCounts = [];
+
+        $this->info("Preparing batch jobs for {$users->count()} users...");
+        $progressBar = $this->output->createProgressBar($users->count());
+        $progressBar->start();
+
+        foreach ($users as $user) {
+            try {
+                // Clear yesterday's pending/in_progress tasks -> mark as EXPIRED (from map.md)
+                UserTask::where('user_id', $user->id)
+                    ->whereIn('status', ['PENDING', 'IN_PROGRESS'])
+                    ->whereDate('assigned_at', '<', today())
+                    ->update(['status' => 'EXPIRED']);
+
+                // Get user's plan
+                $plan = $user->plan;
+                $planName = strtolower($plan->name ?? 'basic');
+                $maxTasks = $dailyLimits[$planName] ?? 8;
+
+                // Calculate task distribution (from map.md: 60% surveys, 20% videos, 15% syncs, 5% reviews)
+                $taskCount = [
+                    'SURVEY' => (int) ceil($maxTasks * ($distribution['surveys'] / 100)),
+                    'VIDEO' => (int) ceil($maxTasks * ($distribution['videos'] / 100)),
+                    'APP_SYNC' => (int) ceil($maxTasks * ($distribution['syncs'] / 100)),
+                    'PRODUCT_REVIEW' => (int) ceil($maxTasks * ($distribution['reviews'] / 100)),
+                ];
+
+                // Adjust to exact max tasks (from map.md logic)
+                $total = array_sum($taskCount);
+                if ($total > $maxTasks) {
+                    $taskCount['SURVEY'] -= ($total - $maxTasks);
+                }
+
+                $taskTemplateIds = [];
+
+                // Collect tasks by category for batch job
+                foreach ($taskCount as $category => $count) {
+                    if ($count <= 0) continue;
+
+                    // Get available tasks for this category (from map.md: check rank, random selection)
+                    $templates = TaskTemplate::active()
+                        ->available()
+                        ->byCategory($category)
+                        ->where(function($q) use ($user) {
+                            $q->whereNull('min_rank_id')
+                              ->orWhere('min_rank_id', '<=', $user->rank_id ?? 1);
+                        })
+                        ->inRandomOrder()
+                        ->limit($count)
+                        ->get();
+
+                    foreach ($templates as $template) {
+                        $taskTemplateIds[] = $template->id;
+                    }
+                }
+
+                // Add batch job for this user
+                if (!empty($taskTemplateIds)) {
+                    $batchJobs[] = new AssignTaskBatch($user->id, $taskTemplateIds, 24);
+                    $userTaskCounts[$user->id] = count($taskTemplateIds);
+                    $assigned += count($taskTemplateIds);
+                }
+
+            } catch (\Exception $e) {
+                $errors++;
+                Log::error('Task preparation failed for user ' . $user->id, [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
+
+            $progressBar->advance();
+        }
+
+        $progressBar->finish();
+        $this->newLine(2);
+
+        // Dispatch batch jobs with notification callback
+        if (!empty($batchJobs)) {
+            $this->info("Dispatching batch of {$users->count()} jobs...");
+
+            $batch = Bus::batch($batchJobs)
+                ->name('Daily Task Assignment - ' . now()->format('Y-m-d'))
+                ->allowFailures()
+                ->finally(function () use ($userTaskCounts) {
+                    // Send notifications after batch completes
+                    $notificationService = app(NotificationService::class);
+                    $users = User::whereIn('id', array_keys($userTaskCounts))->get();
+
+                    foreach ($users as $user) {
+                        $count = $userTaskCounts[$user->id] ?? 0;
+                        if ($count > 0) {
+                            try {
+                                $notificationService->send($user, 'tasks_assigned', [
+                                    'count' => $count,
+                                    'message' => "🎯 {$count} new tasks available! Start earning now.",
+                                ]);
+                            } catch (\Exception $e) {
+                                Log::error("Failed to notify user {$user->id}: " . $e->getMessage());
+                            }
+                        }
+                    }
+                })
+                ->dispatch();
+
+            $this->info("Batch dispatched! ID: {$batch->id}");
+            $this->info("Run 'php artisan queue:work' to process batch jobs");
+        }
+
+        $duration = round(microtime(true) - $startTime, 2);
+
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        $this->info('✅ Task Assignment Complete!');
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        $this->info("✓ Users processed: {$users->count()}");
+        $this->info("✓ Tasks assigned: {$assigned}");
+        $this->info("✗ Errors: {$errors}");
+        $this->info("⏱  Duration: {$duration}s");
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+        Log::info('Daily task assignment completed', [
+            'users_processed' => $users->count(),
+            'tasks_assigned' => $assigned,
+            'errors' => $errors,
+            'duration' => $duration
+        ]);
+
+        return Command::SUCCESS;
+    }
+}

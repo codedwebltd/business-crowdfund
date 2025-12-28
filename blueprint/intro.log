@@ -1,0 +1,30 @@
+ working_directory = /home/qiviotalk/business.qiviotalk.online;
+
+  please read
+
+ /home/qiviotalk/business.qiviotalk.online/blueprint/map.MD check what am building... i have globalsettings in my db
+  alerady, u can confirm with tinker and migration file. i want to proceed with building the user model here is my model
+  pattern php artisan make:model -msf ! but before that u should understand the project by now. weare not in a haste.
+  we need to understand that this project is inerita/vue project. also when u analyze my project we will discuss the
+  models and migrations needed for the user relationsip. remember that if u write all te columns out here it will bloat
+  this chat so we need to discuss..with urintelignce, u should understand  that tis is a professional grade project i
+  dont want u to be pastng files u editted or created on this chat please if u must paste it cut it to first 10 line.. u
+  should use ur professional knowledge to know every column based on ur understanding of the project.  also we detect
+  country by using the jenssegers/agent u can access /home/qiviotalk/public_html/app/Traits/LocationTrait.php if u ant
+  to understad dhow locaton works ,  
+
+  this path is where u can also copy the location database file in public_path and paste in the 
+  public_path of our working directory  wihich is above.
+
+  make sure the coutry code is attached to number as we will save it in db with country code to enable us not to have 
+  unforseen issue with sms apis..
+  
+  we wil start by creatin traits and services of many things because when this 
+  project bloats it will be hard to maintain
+
+avoid hard-code / static coding of certain features instead use traits and services to handle those features
+  
+  
+i will need a clean redesign of the registeration.vue andlogin.vue to be very unqiue from what it is right now
+i need u to give me industry standrd deign not plain like it i sright now remove the div block on that header that has the heading on both files
+replace them with sweet design that will make the project look very proffesional currently is childish. dont u see  lets do this design first before we proceed.

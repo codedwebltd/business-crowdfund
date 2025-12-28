@@ -1,0 +1,961 @@
+Perfect! Summary - my seeder now matches your
+  admin UI 100%:
+
+  ✅ liquidity_settings - Fixed to have burn rates
+  (0.7, 0.9, 1.2)
+  ✅ payment_gateways - Already simplified to
+  bank_transfer + crypto_transfer
+  ✅ token_settings - Has token_price,
+  fluctuation_enabled
+  ✅ pending_balance_maturation_hours - Already
+  there (72)
+  ✅ withdrawal_rate - Already there (0.68)
+  ✅ All other fields match
+
+  That's all from my observation! Your seeder is now
+   perfectly aligned with your admin UI tabs and
+  blueprint/map.MD.
+
+> what do you think about using automatic payment
+gateway and manual payment method? or creating a
+manual payment gateway with my custombarcoon qr code
+ and address maybe open a eallet with monero
+supported wallet. or still yet auto method?  which
+one should i do? and wgich wallet u suggest?
+
+● Based on blueprint/map.MD (lines 23-27) and your
+  current setup, here's my recommendation:
+
+  Best Approach: Hybrid (Both Auto + Manual)
+
+  Why?
+
+  Manual (QR Code/Bank Transfer):
+  - ✅ No transaction fees (you keep 100%)
+  - ✅ Works for 70% of Nigerian users (blueprint
+  line 25)
+  - ✅ No API failures/downtime risks
+  - ✅ You control verification timing (liquidity
+  management)
+  - ❌ 2-4 hour delay (manual verification)
+
+  Auto (Paystack/Flutterwave):
+  - ✅ Instant activation (25% prefer this -
+  blueprint line 26)
+  - ✅ Less admin work
+  - ❌ ~1.5% transaction fees
+  - ❌ Webhook failures can happen
+  - ❌ Account can be frozen if flagged
+
+  Crypto (USDT):
+  - ✅ International users (5% - blueprint line 27)
+  - ✅ No middleman, lower fees
+  - ✅ Harder to reverse/chargeback
+  - ❌ Most Nigerians unfamiliar with crypto
+  - ❌ Requires wallet management
+                                                          My Recommendation:
+
+  Start with Manual + Crypto, add Auto later
+
+  1. Bank Transfer (Manual) - Primary
+    - Show QR code with your account details
+    - Users upload payment proof
+    - You verify in admin panel
+    - Activates account manually
+  2. USDT (Crypto) - Secondary
+    - Wallet: Use Binance or Trust Wallet (supports
+  TRC20 USDT - lowest fees)
+    - Generate QR code for your USDT TRC20 address
+    - Users send USDT, paste transaction hash
+    - You verify on blockchain explorer
+  3. Auto (Later) - When you scale
+    - Add Paystack/Flutterwave when daily
+  activations > 50
+    - Charge slightly higher fee for auto (₦5,500 vs
+   ₦5,000 manual)
+
+  Recommended Crypto Wallet:
+
+  Trust Wallet (Mobile) or Exodus (Desktop)
+  - Free, easy to use
+  - Supports USDT TRC20 (cheapest network)
+  - Good for beginners
+  - Non-custodial (you control keys)
+
+  For Monero (XMR):
+  - Only if you want full anonymity
+  - More complex for average Nigerian user
+  - Use Cake Wallet if you go this route
+
+  Which would you prefer? Manual-first or jump
+  straight to auto payments?
+
+> ok. i think inwill go this way. wanted to go with
+blockhain.payment api but it will introduce
+overhead. coz they dont give webhook i will open
+exdous or cake wallet then copy a coim token
+from.there. i still need a crypto wallet json column
+ in admin ui where i can store diff wallets wherre
+users can select from durring payment. also i will
+have bank details json where i can also upload
+various bank accounts drtails such as bank
+name,account number, special note.  same witj
+crypto.  then as i alerady have switch for payment
+metbod such as enable_crypto etc they will control
+which method a user can select in tjeir payment
+modal once they select a plan payment metbods will
+list out they slect thr active ones and see warning
+on inactove ones, then proceed to paymentpage .vue
+this is wuere tjey will now see our heautiful
+oayment qr code , and copy functionalities for
+copying raw dettails one by onea very beautiful ui
+when they pay, tbey ckick i have paid and we
+generate trans id and then spin and take them back
+to the dashnoard where tjry came from, and then show
+ them veautifuk ui block counting down to 2hours
+when there payment will be approved. or 4hrs tellimg
+ tjem in a mice text that the oayment could approve
+beforr this time depending on crypto network. this
+will give us chance to review and approve. tell them
+ if they dont see the payment, they can s3nd us a
+message eitj the payment id  by then we have stored
+in db transaction table, and withdrawal table of
+possible dependimg on map.md  if we approve
+transactions its usually synched with witudrawals
+via observer.  if ee activate two payment metnods
+then users can equally select any of their choice.
+what do u think ?
+
+● This is PERFECT! Very smart approach! You've
+  thought through the entire UX flow. Here's my
+  breakdown:
+
+  Your Plan (Excellent):
+
+  ✅ Admin Side:
+
+  1. JSON columns in global_settings:
+    - crypto_wallets - Array of {coin_name, network,
+   address, qr_code_path, special_note}
+    - bank_accounts - Array of {bank_name,
+  account_number, account_name, special_note}
+  2. Payment toggle switches (already exist):
+    - payment_gateways.bank_transfer.enabled
+    - payment_gateways.crypto_transfer.enabled
+
+  ✅ User Flow:
+
+  1. Dashboard → Select Plan → "Activate Account"
+  button
+  2. Payment Modal → Shows enabled methods:
+    - ✅ Bank Transfer (if enabled)
+    - ✅ Crypto USDT (if enabled)
+    - ⚠️ Grayed out if disabled with "Under
+  Maintenance"
+  3. PaymentPage.vue:
+    - Beautiful QR code display
+    - Copy buttons for each detail (account number,
+  wallet address, etc.)
+    - Amount in big bold text
+    - "I Have Paid" button
+  4. After clicking "I Have Paid":
+    - Generate transaction ID (e.g., TXN-NGR-847392)
+    - Store in transactions table (user_id, plan_id,
+   amount, payment_method, status: PENDING)
+    - Redirect to Dashboard
+  5. Dashboard countdown block:
+    - "⏳ Payment under review - Approx 2-4 hours"
+    - Shows transaction ID
+    - "Need help? Contact support with ID: TXN-XXX"
+
+  ✅ Backend:
+
+  - Admin reviews in Admin → Transactions tab
+  - Clicks "Approve" → Observer triggers:
+    - Updates users.status → ACTIVE
+    - Creates user_subscriptions record
+    - Creates wallet record
+    - Sends welcome notification
+
+  What I'll Build:
+
+  1. Add crypto_wallets and bank_accounts to
+  global_settings migration
+  2. Admin UI tab for managing payment accounts
+  3. Payment selection modal component
+  4. Beautiful PaymentPage.vue with QR codes
+  5. Countdown timer component for dashboard
+  6. Transaction approval flow in admin
+
+  Should I start coding this now? Which part first -
+   admin payment accounts UI or user payment flow?
+
+> the qr code is not needed i mean th3ncokumn we
+will generate qr code in real time withbarcoonqrcode
+ check mycomposer json for qr code pacakage. my
+google 2fa uses it. then we will insert cryptowallet
+ amd otjer details ee want inside qr code very
+simple.rral time ..i also want when admin approves
+then user will be assingned task u can check yser
+observer to see where i gave instruction on whrn
+user eill grt a valid plan id. then read map.md and
+then we will also send notifications when we finally
+ finish and then check of tbis any balance column to
+ update if neccessary then we check tables to update
+ make sure we dont lesve any stone unturned. i dont
+think that money goes into any walletjust the
+transaction history is ok.since is activation.
+after this we will move on to jext task please make
+sure currency ia dynamic fromglobal settings. lets
+do this without ae.
+
+● Perfect! Let me start implementing this properly:
+
+● Bash(grep -i "qr\|barcode" composer.json)
+  ⎿         "bacon/bacon-qr-code": "^3.0",
+    /bin/bash: line 1: /tmp/claude-aef0-cwd: Permis
+    sion denied
+
+  ⎿  Shell cwd was reset to /home/qiviotalk
+
+● Bash(cd /home/qiviotalk/business.qiviotalk.online &&
+      grep -n "crypto_wallets\|bank_accounts"
+      database/migrations/*global_settings*.php)
+  ⎿  No matches found
+
+● Need to add columns. Let me update the migration:
+
+● Update(business.qiviotalk.online/database/migrations/2
+        025_12_18_153749_create_global_settings_table.ph
+        p)
+  ⎿  Updated business.qiviotalk.online/database/mig
+     ations/2025_12_18_153749_create_global_settings
+     _table.php with 19 additions and 4 removals
+       183                $table->json('payment_g
+             ateways')->nullable();
+       184                /**
+       185                 * Structure: {
+       186 -               *   "bank_transfer":
+           -  {"enabled": true
+           -  , "manual_verification": true},
+       187 -               *   "opay":
+           - {"enabled": true, "api_key": "",
+           - "merchant_id": ""},
+       188 -               *   "palmpay":
+           - {"enabled": false, "api_key": ""},
+       189 -               *   "usdt":
+           - {"enabled": true, "wallet_address":
+           - "", "networks": ["TRC20", "ERC20"]}
+       186 +               *   "bank_transfer":
+           +  {"enabled": true},
+       187 +               *   "crypto_transfer":
+           +  {"enabled": true}
+       188                 * }
+       189                 */
+       190
+       191 +              // Payment Account
+           + Details (Admin managed)
+       192 +              $table->json('bank_acco
+           + unts')->nullable()->comment('Array
+           + of bank accounts for manual
+           + transfers');
+       193 +              /**
+       194 +               * Structure: [
+       195 +               *   {"bank_name":
+           + "GTBank", "account_number":
+           + "0123456789", "account_name":
+           + "CrowdPower Ltd", "special_note":
+           + "Reference your phone number"},
+       196 +               *   {"bank_name":
+           + "Opay", "account_number":
+           + "9876543210", "account_name":
+           + "CrowdPower", "special_note": null}
+       197 +               * ]
+       198 +               */
+       199 +
+       200 +              $table->json('crypto_wa
+           + llets')->nullable()->comment('Array
+           + of crypto wallets for payments');
+       201 +              /**
+       202 +               * Structure: [
+       203 +               *   {"coin_name":
+           + "USDT", "network": "TRC20",
+           + "address": "TXxxx...",
+           + "special_note": "Minimum: $10"},
+       204 +               *   {"coin_name":
+           + "BTC", "network": "Bitcoin",                          + "address": "bc1xxx...",
+           + "special_note": null}                             205 +               * ]
+       206 +               */
+       207 +
+       208                // ====================
+              LIQUIDITY MANAGEMENT
+             ====================
+       209                $table->json('liquidity
+             _settings')->nullable();
+       210                /**
+
+● Update(business.qiviotalk.online/app/Models/GlobalSett
+        ing.php)
+  ⎿  Updated business.qiviotalk.online/app/Models/G
+     obalSetting.php with 2 additions
+       53
+       54            // Payment Gateways
+       55            'payment_gateways',
+       56 +          'bank_accounts',
+       57 +          'crypto_wallets',
+       58
+       59            // Liquidity Management
+       60            'liquidity_settings',
+
+● Update(business.qiviotalk.online/app/Models/GlobalSett
+        ing.php)
+  ⎿  Updated business.qiviotalk.online/app/Models/G
+     obalSetting.php with 2 additions
+       134            'fraud_detection_rules' =>
+             'array',
+       135            'notification_channels' =>
+             'array',
+       136            'payment_gateways' =>
+             'array',
+       137 +          'bank_accounts' => 'array',
+       138 +          'crypto_wallets' =>
+           + 'array',
+       139            'liquidity_settings' =>
+             'array',
+       140            'token_settings' =>
+             'array',
+       141            'kyc_requirements' =>
+             'array',
+
+● Update(business.qiviotalk.online/database/seeders/Glob
+        alSettingsSeeder.php)
+  ⎿  Updated business.qiviotalk.online/database/see
+     ers/GlobalSettingsSeeder.php with 20 additions
+
+       139                    ],
+       140                ],
+       141
+       142 +              // Bank Accounts (Admin
+           +  manages these)
+       143 +              'bank_accounts' => [
+       144 +                  [
+       145 +                      'bank_name' =>
+           + 'GTBank',
+       146 +
+           + 'account_number' => '0123456789',
+       147 +                      'account_name'
+           + => 'QivioTalk Limited',
+       148 +                      'special_note'
+           + => 'Use your phone number as
+           + reference',
+       149 +                  ],
+       150 +              ],
+       151 +
+       152 +              // Crypto Wallets
+           + (Admin manages these)
+       153 +              'crypto_wallets' => [
+       154 +                  [
+       155 +                      'coin_name' =>
+           + 'USDT',
+       156 +                      'network' =>
+           + 'TRC20',
+       157 +                      'address' =>
+           + 'TYourWalletAddressHere',
+       158 +                      'special_note'
+           + => 'Minimum deposit: $10 USDT',
+       159 +                  ],
+       160 +              ],
+       161 +
+       162                // Liquidity (matches
+             Token.vue lines 76-98)
+       163                'liquidity_settings' =>
+              [
+       164                    'healthy_burn_rate'
+              => 0.7,
+
+● Now creating admin UI tab for payment accounts
+  management. First, let me check the structure of
+  existing settings tabs:
+
+● Bash(cd /home/qiviotalk/business.qiviotalk.online &&
+      ls resources/js/Pages/Admin/Settings/Tabs/)
+  ⎿  AI.vue
+     AppConfig.vue
+     Email.vue
+     … +10 lines (ctrl+o to expand)
+
+● Payment accounts should go in Financial.vue. Let
+  me add the section:
+
+● Read(resources/js/Pages/Admin/Settings/Tabs/Financial.
+      vue)
+  ⎿  Read 40 lines
+
+● Let me add payment accounts management section to
+  Financial.vue after the withdrawal processing
+  times section (before the save button):
+
+● Update(resources/js/Pages/Admin/Settings/Tabs/Financia
+        l.vue)
+  ⎿  Updated resources/js/Pages/Admin/Settings/Tabs
+     Financial.vue with 78 additions
+        97              </div>
+        98            </div>
+        99
+       100 +          <!-- Bank Accounts -->
+       101 +          <div>
+       102 +            <div class="flex
+           + items-center justify-between mb-3">
+       103 +              <h3 class="text-sm
+           + font-bold text-gray-900 flex
+           + items-center gap-2">
+       104 +                <span>Bank
+           + Accounts</span>
+       105 +                <Tooltip text="Add
+           + your company bank accounts for
+           + manual transfers. Users will see
+           + these when paying." />
+       106 +              </h3>
+       107 +              <button type="button"
+           + @click="addBankAccount"
+           + class="text-xs px-3 py-1.5
+           + bg-indigo-500 text-white rounded-lg
+           + hover:bg-indigo-600">
+       108 +                + Add Account
+       109 +              </button>
+       110 +            </div>
+       111 +            <div v-for="(account,
+           + index) in form.bank_accounts"
+           + :key="index" class="bg-gray-50
+           + rounded-lg p-4 mb-3 relative">
+       112 +              <button type="button"
+           + @click="removeBankAccount(index)"
+           + class="absolute top-2 right-2
+           + text-red-500 hover:text-red-700">
+       113 +                <svg class="w-5 h-5"
+           + fill="none" stroke="currentColor"
+           + viewBox="0 0 24 24">
+       114 +                  <path
+           + stroke-linecap="round"
+           + stroke-linejoin="round"
+           + stroke-width="2" d="M6 18L18 6M6
+           + 6l12 12"/>
+       115 +                </svg>
+       116 +              </button>
+       117 +              <div class="grid
+           + grid-cols-1 sm:grid-cols-2 gap-3">
+       118 +                <div>
+       119 +                  <label
+           + class="text-xs text-gray-600 mb-1
+           + block">Bank Name</label>
+       120 +                  <input
+           + v-model="account.bank_name"
+           + type="text" placeholder="GTBank"
+           + class="w-full px-3 py-2 border
+           + border-gray-300 rounded-lg text-sm"
+           + />
+       121 +                </div>
+       122 +                <div>
+       123 +                  <label
+           + class="text-xs text-gray-600 mb-1
+           + block">Account Number</label>
+       124 +                  <input
+           + v-model="account.account_number"
+           + type="text" placeholder="0123456789"
+           +  class="w-full px-3 py-2 border
+           + border-gray-300 rounded-lg text-sm"
+           + />
+       125 +                </div>
+       126 +                <div>
+       127 +                  <label
+           + class="text-xs text-gray-600 mb-1
+           + block">Account Name</label>
+       128 +                  <input
+           + v-model="account.account_name"
+           + type="text" placeholder="QivioTalk
+           + Limited" class="w-full px-3 py-2
+           + border border-gray-300 rounded-lg
+           + text-sm" />
+       129 +                </div>
+       130 +                <div>
+       131 +                  <label
+           + class="text-xs text-gray-600 mb-1
+           + block">Special Note
+           + (Optional)</label>
+       132 +                  <input
+           + v-model="account.special_note"
+           + type="text" placeholder="Use your
+           + phone as reference" class="w-full
+           + px-3 py-2 border border-gray-300
+           + rounded-lg text-sm" />
+       133 +                </div>
+       134 +              </div>
+       135 +            </div>
+       136 +            <p
+           + v-if="!form.bank_accounts ||
+           + form.bank_accounts.length === 0"
+           + class="text-sm text-gray-500
+           + italic">No bank accounts added
+           + yet.</p>
+       137 +          </div>
+       138 +
+       139 +          <!-- Crypto Wallets -->
+       140 +          <div>
+       141 +            <div class="flex
+           + items-center justify-between mb-3">
+       142 +              <h3 class="text-sm
+           + font-bold text-gray-900 flex
+           + items-center gap-2">
+       143 +                <span>Crypto
+           + Wallets</span>
+       144 +                <Tooltip text="Add
+           + your crypto wallet addresses. QR
+           + codes will be generated
+           + automatically." />
+       145 +              </h3>
+       146 +              <button type="button"
+           + @click="addCryptoWallet"
+           + class="text-xs px-3 py-1.5
+           + bg-indigo-500 text-white rounded-lg
+           + hover:bg-indigo-600">
+       147 +                + Add Wallet
+       148 +              </button>
+       149 +            </div>
+       150 +            <div v-for="(wallet,
+           + index) in form.crypto_wallets"
+           + :key="index" class="bg-gray-50
+           + rounded-lg p-4 mb-3 relative">
+       151 +              <button type="button"
+           + @click="removeCryptoWallet(index)"
+           + class="absolute top-2 right-2
+           + text-red-500 hover:text-red-700">
+       152 +                <svg class="w-5 h-5"
+           + fill="none" stroke="currentColor"
+           + viewBox="0 0 24 24">
+       153 +                  <path
+           + stroke-linecap="round"
+           + stroke-linejoin="round"
+           + stroke-width="2" d="M6 18L18 6M6
+           + 6l12 12"/>
+       154 +                </svg>
+       155 +              </button>
+       156 +              <div class="grid
+           + grid-cols-1 sm:grid-cols-2 gap-3">
+       157 +                <div>
+       158 +                  <label
+           + class="text-xs text-gray-600 mb-1
+           + block">Coin Name</label>
+       159 +                  <input
+           + v-model="wallet.coin_name"
+           + type="text" placeholder="USDT"
+           + class="w-full px-3 py-2 border
+           + border-gray-300 rounded-lg text-sm"
+           + />
+       160 +                </div>
+       161 +                <div>
+       162 +                  <label
+           + class="text-xs text-gray-600 mb-1
+           + block">Network</label>
+       163 +                  <input
+           + v-model="wallet.network" type="text"
+           +  placeholder="TRC20" class="w-full
+           + px-3 py-2 border border-gray-300
+           + rounded-lg text-sm" />
+       164 +                </div>
+       165 +                <div
+           + class="sm:col-span-2">
+       166 +                  <label
+           + class="text-xs text-gray-600 mb-1
+           + block">Wallet Address</label>
+       167 +                  <input
+           + v-model="wallet.address" type="text"
+           +
+           + placeholder="TYourWalletAddressHere"
+           +  class="w-full px-3 py-2 border
+           + border-gray-300 rounded-lg text-sm
+           + font-mono" />
+       168 +                </div>
+       169 +                <div
+           + class="sm:col-span-2">
+       170 +                  <label
+           + class="text-xs text-gray-600 mb-1
+           + block">Special Note
+           + (Optional)</label>
+       171 +                  <input
+           + v-model="wallet.special_note"
+           + type="text" placeholder="Minimum:
+           + $10" class="w-full px-3 py-2 border
+           + border-gray-300 rounded-lg text-sm"
+           + />
+       172 +                </div>
+       173 +              </div>
+       174 +            </div>
+       175 +            <p
+           + v-if="!form.crypto_wallets ||
+           + form.crypto_wallets.length === 0"
+           + class="text-sm text-gray-500
+           + italic">No crypto wallets added
+           + yet.</p>
+       176 +          </div>
+       177 +
+       178            <div class="flex
+             justify-end pt-4 border-t">
+       179              <button type="submit"
+             :disabled="saving" class="px-6
+             py-2.5 bg-gradient-to-r
+             from-indigo-500 to-blue-600
+             text-white font-semibold rounded-xl
+             hover:shadow-lg transition-all
+             disabled:opacity-50">
+       180                {{ saving ? 'Saving...'
+              : 'Save Financial Settings' }}
+╭─ Claude Code ────────────────────────────────────────╮
+│                                                      │
+│                Welcome back Gheorghe!                │
+│                                                      │
+│                                                      │
+│                        ▐▛███▜▌                       │
+│                       ▝▜█████▛▘                      │
+│                         ▘▘ ▝▝                        │
+│                                                      │
+│                                                      │
+│                      Sonnet 4.5                      │
+│                      Claude Pro                      │
+│      /home/qiviotalk/business.qiviotalk.online       │
+│                                                      │
+╰──────────────────────────────────────────────────────╯
+══════ Conversation compacted · ctrl+o for history ═════
+  ⎿ Read
+    resources/js/Pages/Admin/Settings/Tabs/Financial.vue
+     (215 lines)
+  ⎿ Read database/seeders/GlobalSettingsSeeder.php (221
+    lines)
+
+  ⎿  Read app/Models/GlobalSetting.php (252 lines)
+  ⎿ Read database/migrations/2025_12_18_153749_create_gl
+    obal_settings_table.php (313 lines)
+  ⎿  Read database/seeders/PlansSeeder.php (145 lines)
+  ⎿  Todo list read (10 items)
+
+● I'll complete the Financial.vue component by
+  adding the missing JavaScript methods for managing
+   bank accounts and crypto wallets.
+
+● Update(resources/js/Pages/Admin/Settings/Tabs/Financia
+        l.vue)
+  ⎿  Updated resources/js/Pages/Admin/Settings/Tabs
+     Financial.vue with 28 additions
+       197    const form = reactive({
+       198      withdrawal_limits_by_rank: props.
+             settings.withdrawal_limits_by_rank
+             || {},                                            199      payment_gateways:
+             props.settings.payment_gateways ||                      {},
+       200 +    bank_accounts:
+           + props.settings.bank_accounts || [],
+       201 +    crypto_wallets:
+           + props.settings.crypto_wallets || [],
+       202      minimum_withdrawal:
+             props.settings.minimum_withdrawal ||
+              1000,
+       203      maximum_withdrawal:
+             props.settings.maximum_withdrawal ||
+              500000,
+       204      withdrawals_per_day:
+             props.settings.withdrawals_per_day
+             || 1,
+       205      withdrawal_processing_times:
+             props.settings.withdrawal_processing
+             _times || {}
+       206    });
+       207
+       208 +  const addBankAccount = () => {
+       209 +    form.bank_accounts.push({
+       210 +      bank_name: '',
+       211 +      account_number: '',
+       212 +      account_name: '',
+       213 +      special_note: ''
+       214 +    });
+       215 +  };
+       216 +
+       217 +  const removeBankAccount = (index)
+           + => {
+       218 +    form.bank_accounts.splice(index,
+           + 1);
+       219 +  };
+       220 +
+       221 +  const addCryptoWallet = () => {
+       222 +    form.crypto_wallets.push({
+       223 +      coin_name: '',
+       224 +      network: '',
+       225 +      address: '',
+       226 +      special_note: ''
+       227 +    });
+       228 +  };
+       229 +
+       230 +  const removeCryptoWallet = (index)
+           + => {
+       231 +    form.crypto_wallets.splice(index,
+           +  1);
+       232 +  };
+       233 +
+       234    const save = () => {
+       235      saving.value = true;
+       236      router.post('/admin/settings/fina
+             ncial', form, {
+
+● Perfect! The admin UI for managing payment
+  accounts is now complete. Now I'll update the todo
+   list and move on to building the payment
+  selection modal component for users.
+
+● Now I'll create the payment selection modal
+  component. Let me first check the Plans.vue page
+  to see where the user selects a plan.
+
+● Search(pattern: "**/Plans.vue")
+  ⎿  Found 0 files
+
+● Search(pattern: "**/Plan*.vue")
+  ⎿  Found 1 file (ctrl+o to expand)
+
+● Read(resources/js/Pages/Dashboard/PlanSelection.vue)
+  ⎿  Read 87 lines
+
+● Now let me check the controller that handles plan
+  selection to understand the current flow:
+
+● Search(pattern: "Route.*plan.*select", glob:
+        "**/web.php", output_mode: "content")
+  ⎿  Found 0 lines
+
+● Search(pattern: "plan/select|plan.select", glob:
+        "**/*.php")
+  ⎿  Found 0 files
+
+● Let me search for PlanController:
+
+● Search(pattern: "**/PlanController.php")
+  ⎿  Found 0 files
+
+● Let me check the web.php routes to see what routes
+   exist:
+
+● Bash(grep -n "plan" /home/qiviotalk/business.qiviotalk
+      .online/routes/web.php)
+  ⎿ 49:        $user = auth()->user()->load('plan')
+    ;
+    51:        $plans = \App\Models\Plan::where('is
+    … +15 lines (ctrl+o to expand)
+
+
+
+● Let me read the web.php file to understand the
+  routing structure:
+
+● Read(routes/web.php)
+  ⎿  Read 100 lines
+
+● I can see that the PlanSelection page is being
+  rendered in the dashboard when the user doesn't
+  have a plan. Now I need to create the payment
+  flow. Let me create a PaymentMethodModal component
+   and then create a controller to handle the plan
+  selection and payment flow.
+
+  First, let me create the PaymentMethodModal
+  component:
+
+● Write(resources/js/Components/PaymentMethodModal.vue)
+  ⎿  Wrote 172 lines to
+     resources/js/Components/PaymentMethodModal.vue
+     <template>
+       <div v-if="show" class="fixed inset-0 z-50
+     overflow-y-auto">
+         <div class="flex min-h-screen items-center
+     justify-center p-4">
+           <!-- Backdrop -->
+           <div class="fixed inset-0 bg-black/70
+     backdrop-blur-sm" @click="close"></div>
+           <!-- Modal -->
+           <div class="relative w-full max-w-md
+     bg-gradient-to-br from-purple-900/90
+     to-indigo-900/90 backdrop-blur-xl rounded-2xl
+     shadow-2xl border-2 border-purple-500/30 p-6">
+             <!-- Close Button -->
+             <button @click="close" class="absolute
+     top-4 right-4 text-gray-400 hover:text-white
+     transition-colors">
+
+
+     … +162 lines (ctrl+o to expand)
+
+● Now I'll update the PlanSelection.vue to use this
+  modal:
+
+● Update(resources/js/Pages/Dashboard/PlanSelection.vue)
+  ⎿  Updated
+     resources/js/Pages/Dashboard/PlanSelection.vue
+     with 13 additions and 5 removals
+
+       23
+            :class="plan.is_popular ?
+            'border-pink-500 scale-105' :
+            'border-purple-500/30
+            group-hover:border-purple-500/60
+            group-hover:scale-105'">
+       24
+       25                            <div
+            class="text-center mb-6">
+       26 -                              <h3
+          -  class="text-2xl font-bold text-white
+          -   mb-2">{{ plan.name }}</h3>
+       26 +                              <h3
+          +  class="text-2xl font-bold text-white
+          +   mb-2">{{ plan.display_name }}</h3>
+       27                                <div
+            class="flex items-baseline
+            justify-center gap-2">
+       28
+            <span class="text-4xl font-bold
+            text-transparent bg-clip-text
+            bg-gradient-to-r from-purple-400
+            to-pink-400">
+       29
+            {{ formatCurrency(plan.price) }}
+     ...
+       34
+       35                            <!--
+            Features -->
+       36                            <ul
+            class="space-y-3 mb-8">
+       37 -                              <li
+          -  v-for="(feature, index) in plan.
+          -  benefits" :key="index" class="flex
+          -  items-start gap-2 text-purple-100">
+       37 +                              <li
+          +  v-for="(feature, index) in (plan.
+          +  features?.feature_list || [])
+          +  " :key="index" class="flex
+          +  items-start gap-2 text-purple-100">
+       38                                    <svg
+             class="w-5 h-5 text-green-400 mt-0.5
+             flex-shrink-0" fill="currentColor"
+            viewBox="0 0 20 20">
+       39
+            <path fill-rule="evenodd" d="M10 18a8
+             8 0 100-16 8 8 0 000
+            16zm3.707-9.293a1 1 0
+            00-1.414-1.414L9 10.586 7.707 9.293a1
+             1 0 00-1.414 1.414l2 2a1 1 0 001.414
+             0l4-4z" clip-rule="evenodd"/>
+       40
+            </svg>
+     ...
+       44
+       45                            <!-- Select
+            Button -->
+       46                            <button
+            @click="selectPlan(plan)"
+       47 -
+          - :disabled="processing"
+       48 -
+          - class="w-full py-3 rounded-xl
+          - font-semibold transition-all
+          - duration-300 disabled:opacity-50"
+       47 +
+          + class="w-full py-3 rounded-xl
+          + font-semibold transition-all
+          + duration-300"
+       48
+            :class="plan.is_popular
+       49                                    ?
+            'bg-gradient-to-r from-pink-500
+            to-purple-500 text-white
+            hover:shadow-lg
+            hover:shadow-pink-500/50'
+       50                                    :
+            'bg-purple-500/20 text-white
+            hover:bg-purple-500/30 border
+            border-purple-500/50'">
+       51 -
+          -  {{ processing ? 'Processing...' : '
+          -  Select Plan' }}
+       51 +
+          +  Select Plan
+       52                            </button>
+       53                        </div>
+       54                    </div>
+     ...
+       60                </p>
+       61            </div>
+       62        </div>
+       63 +
+       64 +      <!-- Payment Method Modal -->
+       65 +      <PaymentMethodModal
+       66 +          :show="showPaymentModal"
+       67 +          :selectedPlan="selectedPlan"
+       68 +          :settings="settings"
+       69 +
+          + :currencySymbol="currencySymbol"
+       70 +          @close="showPaymentModal =
+          + false"
+       71 +      />
+       72    </template>
+       73
+       74    <script setup>
+
+● Now I need to update the script section:
+
+● Update(resources/js/Pages/Dashboard/PlanSelection.vue)
+  ⎿  Updated
+     resources/js/Pages/Dashboard/PlanSelection.vue
+     with 7 additions and 6 removals
+
+       72
+       73    <script setup>
+       74    import { ref } from 'vue';
+       75 -  import { Head, router
+          -  } from '@inertiajs/vue3';
+       75 +  import { Head
+          +  } from '@inertiajs/vue3';
+       76 +  import PaymentMethodModal from '@/Co
+          + mponents/PaymentMethodModal.vue';
+       77
+       78    const props = defineProps({
+       79        plans: Array,
+       80 +      settings: Object,
+       81        currencySymbol: String,
+       82    });
+       83
+       84 -  const processing = ref(false);
+       84 +  const showPaymentModal = ref(false);
+       85 +  const selectedPlan = ref(null);
+       86
+       87    const formatCurrency = (amount) => {
+       88        return (props.currencySymbol ||
+            '₦') +
+            parseFloat(amount).toLocaleString();
+       89    };
+       90
+       91    const selectPlan = (plan) => {
+       92 -      processing.value = true;
+       93 -      router.post('/plan/select', {
+          - plan_id: plan.id }, {
+       94 -          onFinish: () =>
+          - processing.value = false,
+       95 -      });
+       92 +      selectedPlan.value = plan;
+       93 +      showPaymentModal.value = true;
+       94    };
+       95    </script>
+  ⎿  Spending cap reached resets 12pm
+     /upgrade to increase your usage limit.
+
+────────────────────────────────────────────────────────
+> 
+────────────────────────────────────────────────────────
+  ? for shortcuts
+Read from remote host business.qiviotalk.online: Software caused connection abort
+Connection to business.qiviotalk.online closed.
+client_loop: send disconnect: Broken pipe
+~ $
