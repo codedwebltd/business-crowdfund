@@ -7,6 +7,9 @@ use App\Models\UserTask;
 use App\Models\Transaction;
 use App\Models\FraudIncident;
 use App\Models\DeviceFingerprint;
+use App\Models\CommissionLedger;
+use App\Models\ReferralTree;
+use App\Models\GlobalSetting;
 use App\Services\RecaptchaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -88,7 +91,7 @@ class TaskController extends Controller
         if ($user->task_ban_until && $user->task_ban_until > now()) {
             $banEnd = $user->task_ban_until->format('M d, Y h:i A');
             return back()->withErrors([
-                'error' => "Your task access is suspended until {$banEnd}. Contact support if you believe this is an error."
+                'error' => "🚫 Task Rejected! Your account is suspended until {$banEnd}. This task will NOT be credited and your submission has been discarded. Contact support if you believe this is an error."
             ]);
         }
 
@@ -315,13 +318,8 @@ class TaskController extends Controller
             ->whereDate('completed_at', today())
             ->count();
 
-        $maxDailyTasks = UserTask::where('user_id', $user->id)
-            ->whereDate('assigned_at', today())
-            ->count();
-
-        if ($maxDailyTasks === 0) {
-            $maxDailyTasks = 8; // Basic plan default
-        }
+        // Get max daily tasks from user's plan features
+        $maxDailyTasks = $user->features()->getMaxDailyTasks();
 
         if ($tasksCompletedToday >= $maxDailyTasks) {
             return back()->withErrors([
@@ -366,7 +364,17 @@ class TaskController extends Controller
             $task->update(['transaction_id' => $transaction->id, 'credited' => true]);
 
             // Update user stats
-            auth()->user()->update(['last_task_completed_at' => now()]);
+            $user = auth()->user();
+            $user->update(['last_task_completed_at' => now()]);
+            $user->increment('total_tasks_completed');
+            $user->increment('tasks_completed_this_week');
+            $user->increment('tasks_completed_this_month');
+
+            // Increment task template completion count
+            $task->taskTemplate->increment('current_completions');
+
+            // Distribute commissions to upline (fan-out)
+            $this->distributeCommissions($user, $task);
 
             DB::commit();
 
@@ -376,6 +384,83 @@ class TaskController extends Controller
             DB::rollBack();
             logger()->error("Task completion failed: " . $e->getMessage());
             return back()->withErrors(['error' => 'Failed to complete task. Please try again.']);
+        }
+    }
+
+    /**
+     * Distribute commissions to upline referrers (fan-out)
+     * Commissions are credited DIRECTLY to withdrawable balance (skip maturation)
+     */
+    private function distributeCommissions($user, $task)
+    {
+        try {
+            // Get settings
+            $settings = GlobalSetting::first();
+            $commissionRates = $settings->commission_rates['task_earnings'] ?? [];
+            $maxDepth = $settings->referral_levels_depth ?? 5;
+
+            if (empty($commissionRates)) {
+                logger()->info("No commission rates configured, skipping distribution.");
+                return;
+            }
+
+            // Get referral tree for this user
+            $referralTree = ReferralTree::where('user_id', $user->id)->first();
+
+            if (!$referralTree) {
+                logger()->info("No referral tree found for user {$user->id}, skipping commission distribution.");
+                return;
+            }
+
+            // Get all upline users with their levels
+            $upline = $referralTree->getUplineForCommissions();
+
+            if (empty($upline)) {
+                logger()->info("User {$user->id} has no upline, skipping commission distribution.");
+                return;
+            }
+
+            // Distribute commissions level by level
+            foreach ($upline as $ancestor) {
+                $level = $ancestor['level'];
+                $uplineUserId = $ancestor['user_id'];
+
+                // Skip if level exceeds configured depth or no rate defined
+                if ($level > $maxDepth || !isset($commissionRates[$level])) {
+                    continue;
+                }
+
+                $commissionRate = $commissionRates[$level];
+                $commissionAmount = round(($task->reward_amount * $commissionRate) / 100, 2);
+
+                if ($commissionAmount <= 0) {
+                    continue;
+                }
+
+                // Record in commission ledger (PENDING - will be disbursed via batch job)
+                CommissionLedger::create([
+                    'user_id' => $uplineUserId,
+                    'source_user_id' => $user->id,
+                    'source_task_id' => $task->id,
+                    'amount' => $commissionAmount,
+                    'level' => $level,
+                    'commission_rate' => $commissionRate,
+                    'status' => 'PENDING', // Store in ledger, batch disburse later to withdrawable
+                    'processed_at' => null, // Will be set when batch job processes
+                ]);
+
+                logger()->info("Commission recorded in ledger: ₦{$commissionAmount} for user {$uplineUserId} (Level {$level})");
+            }
+
+            logger()->info("Commission distribution completed for task {$task->id}");
+
+        } catch (\Exception $e) {
+            logger()->error("Commission distribution failed: {$e->getMessage()}", [
+                'user_id' => $user->id,
+                'task_id' => $task->id,
+                'exception' => $e->getTraceAsString()
+            ]);
+            // Don't throw - let task completion succeed even if commission fails
         }
     }
 }

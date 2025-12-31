@@ -135,8 +135,19 @@
             <h2 class="text-xl sm:text-2xl font-bold text-white">{{ title }}</h2>
           </div>
 
-          <!-- User Dropdown -->
-          <div class="relative" ref="userMenuRef">
+          <div class="flex items-center gap-3">
+            <!-- Notification Icon -->
+            <Link href="/notifications" class="relative p-2 hover:bg-white/10 rounded-lg transition-colors">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+              </svg>
+              <span v-if="unreadNotifications > 0" class="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 flex items-center justify-center bg-gradient-to-r from-pink-500 to-red-500 text-white text-xs font-bold rounded-full border-2 border-slate-900">
+                {{ unreadNotifications > 99 ? '99+' : unreadNotifications }}
+              </span>
+            </Link>
+
+            <!-- User Dropdown -->
+            <div class="relative" ref="userMenuRef">
             <button
               @click.stop="userMenuOpen = !userMenuOpen"
               class="flex items-center gap-2 p-2 hover:bg-white/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500/50"
@@ -226,6 +237,7 @@
               </div>
             </Transition>
           </div>
+          </div>
         </div>
       </header>
 
@@ -270,7 +282,7 @@ const sidebarOpen = ref(false);
 const userMenuOpen = ref(false);
 const userMenuRef = ref(null);
 
-// Subscribe to Pusher fraud-logout event
+// Subscribe to Pusher events
 let pusherChannel = null;
 
 onMounted(() => {
@@ -281,11 +293,49 @@ onMounted(() => {
     }
   });
 
-  // Subscribe to private user channel for fraud alerts
+  // Subscribe to private user channel
   const userId = page.props.auth?.user?.id;
   if (userId && window.Echo) {
     pusherChannel = window.Echo.private(`user.${userId}`);
 
+    console.log('🔔 Pusher channel subscribed:', `user.${userId}`);
+
+    // Listen for notification broadcasts (same pattern as fraud-logout)
+    pusherChannel.listen('.notification', (data) => {
+      console.log('📬 Notification received:', data);
+
+      // Update notification counter
+      page.props.unreadNotifications = (page.props.unreadNotifications || 0) + 1;
+
+      // Show SweetAlert toast
+      Swal.fire({
+        title: data.title || 'New Notification',
+        html: `<p style="color: #e5e7eb;">${data.message || ''}</p>`,
+        icon: 'info',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: '#fff',
+        confirmButtonColor: '#8b5cf6',
+        confirmButtonText: data.action_url ? 'View Details' : 'OK',
+        showCancelButton: !!data.action_url,
+        cancelButtonText: 'Dismiss',
+        cancelButtonColor: '#6b7280',
+        timer: 8000,
+        timerProgressBar: true,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: true,
+        didOpen: (toast) => {
+          toast.addEventListener('mouseenter', Swal.stopTimer);
+          toast.addEventListener('mouseleave', Swal.resumeTimer);
+        }
+      }).then((result) => {
+        if (result.isConfirmed && data.action_url) {
+          router.visit(data.action_url);
+        }
+      });
+    });
+
+    // Listen for fraud-logout alerts
     pusherChannel.listen('.fraud-logout', (data) => {
       // Show SweetAlert with fraud details
       Swal.fire({
@@ -330,8 +380,9 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  // Clean up Pusher subscription
+  // Clean up Pusher subscriptions
   if (pusherChannel) {
+    pusherChannel.stopListening('.notification');
     pusherChannel.stopListening('.fraud-logout');
     window.Echo.leave(`user.${page.props.auth?.user?.id}`);
   }
@@ -370,6 +421,7 @@ const appAbbreviation = computed(() => {
 
 const userName = computed(() => page.props.auth?.user?.full_name || page.props.user?.full_name || 'User');
 const userEmail = computed(() => page.props.auth?.user?.email || page.props.user?.email || page.props.auth?.user?.phone_number || page.props.user?.phone_number || 'user@example.com');
+const unreadNotifications = computed(() => page.props.unreadNotifications || 0);
 
 const isActive = (path, exact = false) => {
   const currentPath = page.url;

@@ -84,11 +84,18 @@ Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(
         // Get user stats
         $stats = [
             'totalEarnings' => $user->wallet ? $user->wallet->total_earned : 0,
-            'availableBalance' => $user->wallet ? $user->wallet->available_balance : 0,
+            'availableBalance' => $user->wallet ? $user->wallet->withdrawable_balance : 0,
             'tasksCompleted' => $user->tasks()->where('status', 'COMPLETED')->count(),
             'tasksCompletedToday' => $user->tasks()->where('status', 'COMPLETED')->whereDate('completed_at', today())->count(),
             'totalReferrals' => $user->directReferrals()->count(),
         ];
+
+        // Check for recent fraud incidents (for reCAPTCHA trigger)
+        $recentFraudCount = \App\Models\FraudIncident::where('user_id', $user->id)
+            ->where('created_at', '>', now()->subDays(7))
+            ->count();
+
+        $hasRecentFraud = $recentFraudCount > 0;
 
         // Get today's tasks
         $tasks = \App\Models\UserTask::with('taskTemplate')
@@ -127,6 +134,7 @@ Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(
             'announcements' => $announcements,
             'tokenFluctuationEnabled' => $tokenFluctuationEnabled,
             'tokenRate' => $tokenRate,
+            'hasRecentFraud' => $hasRecentFraud, // For reCAPTCHA trigger
         ]);
     })->name('dashboard');
 
@@ -174,6 +182,13 @@ Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(
     Route::post('/settings/2fa/cancel', [App\Http\Controllers\Auth\SettingsController::class, 'cancel2FA']);
     Route::post('/settings/2fa/backup-codes', [App\Http\Controllers\Auth\SettingsController::class, 'regenerateBackupCodes']);
     Route::post('/settings/payment-methods', [App\Http\Controllers\Auth\SettingsController::class, 'updatePaymentMethods']);
+
+    // Notification Routes
+    Route::get('/notifications', [App\Http\Controllers\User\NotificationController::class, 'index'])->name('notifications');
+    Route::post('/notifications/{id}/read', [App\Http\Controllers\User\NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/mark-all-read', [App\Http\Controllers\User\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    Route::delete('/notifications/{id}', [App\Http\Controllers\User\NotificationController::class, 'destroy'])->name('notifications.destroy');
+    Route::post('/notifications/delete-all', [App\Http\Controllers\User\NotificationController::class, 'deleteAll'])->name('notifications.delete-all');
 
     // Admin Routes (Role 1 only)
     Route::prefix('admin')->group(function () {

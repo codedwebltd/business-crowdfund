@@ -213,21 +213,41 @@ Use real brands popular in {$country}.";
         $settings = $this->getSettings();
         $maxTokens = $settings->ai_configuration['max_tokens']['video_questions'] ?? 800;
 
-        $systemPrompt = "You are a quiz generator. Create verification questions to confirm users watched a video. Questions should test comprehension and attention. Return ONLY valid JSON.";
+        $systemPrompt = "You are a quiz generator creating verification questions for video watchers. Create meaningful questions that test if users actually watched the video. Focus on specific details, key points, visual elements, and memorable moments. Return ONLY valid JSON.";
 
         $userPrompt = "Video Title: {$videoTitle}
 Description: {$videoDescription}
 
-Generate {$questionCount} multiple choice questions to verify the user watched this video.
+CRITICAL INSTRUCTIONS:
+1. Generate {$questionCount} multiple choice questions based on the video's content
+2. Questions should be SPECIFIC and meaningful (test actual video content, not generic questions)
+3. Each question MUST have exactly 4 options
+4. The LAST option (4th option) MUST ALWAYS be \"None of the above\"
+5. Questions should test:
+   - Specific details mentioned in title/description
+   - Key topics or themes
+   - Named entities (people, places, products)
+   - Numerical facts or dates if present
 
-Return ONLY this JSON structure:
+GOOD examples:
+- \"What is the main topic of this video?\" (based on title/description)
+- \"Who is the creator/channel mentioned?\" (from description)
+- \"What product/service is being discussed?\" (from title)
+
+BAD examples (too generic):
+- \"Did you like the video?\"
+- \"Was this video helpful?\"
+- \"Would you recommend this?\"
+
+Return ONLY this JSON structure (no markdown, no backticks):
 {
   \"questions\": [
     {
       \"id\": 1,
-      \"text\": \"Question about video content\",
-      \"options\": [\"Option 1\", \"Option 2\", \"Option 3\", \"Option 4\"],
-      \"correct_answer_index\": 0
+      \"text\": \"Question about specific video content\",
+      \"type\": \"single_choice\",
+      \"options\": [\"Specific Option 1\", \"Specific Option 2\", \"Specific Option 3\", \"None of the above\"],
+      \"required\": true
     }
   ]
 }";

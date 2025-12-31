@@ -11,7 +11,7 @@ class TaskTemplate extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
-        'category', 'title', 'description', 'questions', 'validation_rules',
+        'category', 'title', 'description', 'questions', 'validation_rules', 'data',
         'reward_amount', 'currency', 'completion_time_seconds', 'min_completion_time',
         'max_completion_time', 'priority', 'is_active', 'is_featured',
         'max_completions', 'current_completions', 'min_rank_id',
@@ -21,6 +21,7 @@ class TaskTemplate extends Model
     protected $casts = [
         'questions' => 'array',
         'validation_rules' => 'array',
+        'data' => 'array',
         'reward_amount' => 'decimal:2',
         'completion_time_seconds' => 'integer',
         'min_completion_time' => 'integer',

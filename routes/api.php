@@ -18,6 +18,8 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+Route::middleware('auth:sanctum')->get('/notifications/check', [App\Http\Controllers\User\NotificationController::class, 'check']);
+
 // Get referrer info by referral code
 Route::get('/referrer/{code}', function ($code) {
     $user = \App\Models\User::where('referral_code', $code)->first();

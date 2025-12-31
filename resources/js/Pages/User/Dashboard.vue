@@ -63,7 +63,7 @@
               <div>
                 <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Plan</p>
                 <p class="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-purple-500">
-                  {{ user.plan_name || 'None' }}
+                  {{ user.plan?.display_name || user.plan?.name || 'None' }}
                 </p>
               </div>
             </div>
@@ -670,8 +670,9 @@ const getAccountAge = () => {
   const created = new Date(props.user.created_at);
   const now = new Date();
   const diffTime = Math.abs(now - created);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
+  if (diffDays === 0) return 'Today';
   if (diffDays < 30) return `${diffDays}d`;
   if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo`;
   return `${Math.floor(diffDays / 365)}yr`;
@@ -712,6 +713,48 @@ const isTaskExpiringSoon = (expiresAt) => {
 };
 
 const startTask = (task) => {
+  // Check if user is banned - show warning but allow them to proceed
+  if (props.user.task_ban_until && new Date(props.user.task_ban_until) > new Date()) {
+    const banEnd = new Date(props.user.task_ban_until).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    Swal.fire({
+      icon: 'warning',
+      title: '⚠️ Account Suspended',
+      html: `
+        <div class="text-left">
+          <p class="mb-3 text-gray-300">Your task access is suspended until <strong class="text-orange-400">${banEnd}</strong></p>
+          <p class="mb-3 text-yellow-400">⚠️ You can view this task, but:</p>
+          <ul class="list-disc list-inside text-gray-300 mb-3 space-y-1">
+            <li>Task completion will be REJECTED</li>
+            <li>No earnings will be credited</li>
+            <li>Your submission won't count</li>
+          </ul>
+          <p class="text-sm text-gray-400">Contact support if you believe this is an error.</p>
+        </div>
+      `,
+      background: '#1f2937',
+      color: '#fff',
+      showCancelButton: true,
+      confirmButtonText: 'View Task Anyway',
+      cancelButtonText: 'Go Back',
+      confirmButtonColor: '#f97316',
+      cancelButtonColor: '#6b7280',
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // User chose to view task anyway - proceed
+        proceedWithTask(task);
+      }
+    });
+    return;
+  }
+
   // Check if expired
   if (new Date(task.expires_at).getTime() < Date.now()) {
     Swal.fire({
@@ -775,6 +818,11 @@ const startTask = (task) => {
     return;
   }
 
+  proceedWithTask(task);
+};
+
+// Helper function to actually open the task
+const proceedWithTask = (task) => {
   selectedTask.value = task;
   showTaskViewer.value = true;
 };
@@ -791,7 +839,7 @@ const handleTaskCompleted = () => {
 };
 
 const getDailyProgress = () => {
-  if (!props.stats || !props.user.plan_name) return 0;
+  if (!props.stats || !props.user.plan) return 0;
 
   // Use TODAY's completed tasks only (resets daily)
   const completedToday = props.stats.tasksCompletedToday || 0;
@@ -799,7 +847,7 @@ const getDailyProgress = () => {
   // Use today's total assigned tasks as the denominator (no hardcoded values)
   const todayTasks = props.tasks?.length || 1; // Avoid division by zero
 
-  return Math.min((completedToday / todayTasks) * 100, 100);
+  return Math.round(Math.min((completedToday / todayTasks) * 100, 100));
 };
 </script>
 

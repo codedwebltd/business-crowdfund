@@ -32,6 +32,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppConfig from './Tabs/AppConfig.vue';
 import Referral from './Tabs/Referral.vue';
@@ -46,6 +47,7 @@ import Token from './Tabs/Token.vue';
 import KYC from './Tabs/KYC.vue';
 import Notifications from './Tabs/Notifications.vue';
 import AI from './Tabs/AI.vue';
+import Swal from 'sweetalert2';
 
 const props = defineProps({
   settings: Object,
@@ -78,7 +80,23 @@ const currentTabComponent = computed(() => {
 });
 
 const handleSaved = () => {
-  // Reload settings after save
-  location.reload();
+  // Reload settings data only (keeps tab active) - preserveState keeps current tab
+  router.reload({
+    only: ['settings'],
+    preserveState: true,
+    preserveScroll: true,
+    onSuccess: () => {
+      // Show success notification
+      Swal.fire({
+        icon: 'success',
+        title: 'Settings Saved!',
+        text: 'Your changes have been saved successfully.',
+        timer: 2000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
+    }
+  });
 };
 </script>

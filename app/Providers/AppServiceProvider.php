@@ -43,6 +43,7 @@ class AppServiceProvider extends ServiceProvider
 
             // Apply mail config from database (override .env)
             if ($globalSettings->mail_host) {
+                Config::set('mail.default', $globalSettings->mail_mailer ?? 'smtp');
                 Config::set('mail.mailers.smtp.host', $globalSettings->mail_host);
                 Config::set('mail.mailers.smtp.port', $globalSettings->mail_port);
                 Config::set('mail.mailers.smtp.username', $globalSettings->mail_username);

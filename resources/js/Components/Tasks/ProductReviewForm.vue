@@ -138,6 +138,27 @@
       <p v-if="wouldRecommend === null && showErrors" class="text-red-400 text-xs mt-2">⚠️ Please select an option</p>
     </div>
 
+    <!-- reCAPTCHA (only shows if user has recent fraud incidents) -->
+    <div v-if="showRecaptcha" class="mb-4">
+      <div id="recaptcha-container-review" class="flex justify-center"></div>
+      <p v-if="recaptchaError" class="text-red-400 text-xs mt-2 text-center">
+        ⚠️ Please complete the CAPTCHA verification
+      </p>
+    </div>
+
+    <!-- Minimum Time Warning -->
+    <div v-if="!canSubmitByTime" class="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4 mb-4">
+      <div class="flex items-center gap-3">
+        <svg class="w-6 h-6 text-orange-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+        </svg>
+        <div>
+          <p class="text-orange-400 font-semibold">Please take your time to write a thoughtful review</p>
+          <p class="text-gray-300 text-sm">You can submit in {{ remainingTime }} seconds</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Complete Button -->
     <button
       @click="submitReview"
@@ -149,21 +170,25 @@
           : 'bg-gray-600 cursor-not-allowed opacity-50'
       ]"
     >
-      <svg v-if="!completing" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg v-if="!completing && canSubmitByTime" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <svg v-else-if="!completing && !canSubmitByTime" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
       </svg>
       <svg v-else class="w-6 h-6 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
       </svg>
-      {{ completing ? 'Submitting...' : 'Submit Review & Claim Reward' }}
+      {{ completing ? 'Submitting...' : !canSubmitByTime ? `Wait ${remainingTime}s` : 'Submit Review & Claim Reward' }}
     </button>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { useDeviceFingerprint } from '@/composables/useDeviceFingerprint';
+import { useRecaptcha } from '@/composables/useRecaptcha';
 import Swal from 'sweetalert2';
 
 const props = defineProps({
@@ -172,6 +197,7 @@ const props = defineProps({
 
 const emit = defineEmits(['completed']);
 const { getFingerprint, attachToRequest } = useDeviceFingerprint();
+const { shouldShow: showRecaptcha, recaptchaError, renderRecaptcha, getToken } = useRecaptcha();
 
 const rating = ref(0);
 const reviewText = ref('');
@@ -181,7 +207,10 @@ const wouldRecommend = ref(null);
 const completing = ref(false);
 const showErrors = ref(false);
 const startTime = ref(Date.now());
+const elapsedTime = ref(0);
+const timerInterval = ref(null);
 const minLength = ref(20);
+const minimumTime = ref(20000); // 20 seconds minimum
 
 const productName = computed(() => {
   return props.task.task_template.data?.product_name || props.task.task_template.title || 'Product';
@@ -191,8 +220,18 @@ const productImage = computed(() => {
   return props.task.task_template.data?.product_image || null;
 });
 
+const remainingTime = computed(() => {
+  const remaining = Math.ceil((minimumTime.value - elapsedTime.value) / 1000);
+  return Math.max(0, remaining);
+});
+
+const canSubmitByTime = computed(() => {
+  return elapsedTime.value >= minimumTime.value;
+});
+
 const canSubmit = computed(() => {
-  return rating.value > 0 &&
+  return canSubmitByTime.value &&
+         rating.value > 0 &&
          reviewText.value.trim().length >= minLength.value &&
          wouldRecommend.value !== null;
 });
@@ -200,6 +239,23 @@ const canSubmit = computed(() => {
 onMounted(async () => {
   await getFingerprint();
   minLength.value = props.task.task_template.data?.min_review_length || 20;
+
+  // Start timer
+  timerInterval.value = setInterval(() => {
+    elapsedTime.value = Date.now() - startTime.value;
+  }, 1000);
+
+  // Render reCAPTCHA if fraud detected
+  if (showRecaptcha.value) {
+    await nextTick();
+    renderRecaptcha('recaptcha-container-review');
+  }
+});
+
+onUnmounted(() => {
+  if (timerInterval.value) {
+    clearInterval(timerInterval.value);
+  }
 });
 
 const submitReview = async () => {
@@ -216,7 +272,31 @@ const submitReview = async () => {
   }
 
   completing.value = true;
+
+  // If reCAPTCHA is required, wait for it to render and be completed
+  if (showRecaptcha.value) {
+    // Make sure reCAPTCHA is rendered
+    await renderRecaptcha('recaptcha-container-review');
+
+    // Get the token - if null, user hasn't completed it yet
+    const token = getToken();
+    if (!token) {
+      completing.value = false;
+      Swal.fire({
+        icon: 'warning',
+        title: 'CAPTCHA Required',
+        text: 'Please complete the CAPTCHA verification below before submitting.',
+        background: '#1f2937',
+        color: '#fff'
+      });
+      return;
+    }
+  }
+
   const duration = Math.floor((Date.now() - startTime.value) / 1000);
+
+  // Get reCAPTCHA token if triggered by fraud
+  const recaptchaToken = showRecaptcha.value ? getToken() : null;
 
   const requestData = attachToRequest({
     response_data: {
@@ -228,7 +308,8 @@ const submitReview = async () => {
       product_name: productName.value,
       review_length: reviewText.value.trim().length
     },
-    duration: duration
+    duration: duration,
+    recaptcha_token: recaptchaToken
   });
 
   router.post(`/tasks/${props.task.id}/complete`, requestData, {

@@ -106,32 +106,48 @@
     </div>
 
     <div v-else-if="syncStatus === 'completed'">
+      <!-- reCAPTCHA (only shows if user has recent fraud incidents) -->
+      <div v-if="showRecaptcha" class="bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-xl p-6 border-2 border-orange-500/50 mb-4">
+        <div class="text-center mb-4">
+          <h3 class="text-xl font-bold text-orange-400 mb-2">🔒 Security Verification Required</h3>
+          <p class="text-sm text-gray-300">Please complete the CAPTCHA below to claim your reward</p>
+        </div>
+        <div id="recaptcha-container-appsync" class="flex justify-center mb-2"></div>
+        <p v-if="recaptchaError" class="text-red-400 text-xs mt-2 text-center animate-pulse">
+          ⚠️ Please complete the CAPTCHA verification above
+        </p>
+      </div>
+
       <button
         @click="completeTask"
-        :disabled="completing"
+        :disabled="completing || (showRecaptcha && !recaptchaCompleted)"
         :class="[
           'w-full py-4 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2',
-          !completing
+          !completing && (!showRecaptcha || recaptchaCompleted)
             ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-xl hover:shadow-green-500/50 cursor-pointer'
             : 'bg-gray-600 cursor-not-allowed opacity-50'
         ]"
       >
-        <svg v-if="!completing" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg v-if="!completing && (!showRecaptcha || recaptchaCompleted)" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <svg v-else-if="!completing && showRecaptcha && !recaptchaCompleted" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
         </svg>
         <svg v-else class="w-6 h-6 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
         </svg>
-        {{ completing ? 'Submitting...' : 'Complete & Claim Reward' }}
+        {{ completing ? 'Submitting...' : (showRecaptcha && !recaptchaCompleted) ? '🔒 Complete CAPTCHA First' : 'Complete & Claim Reward' }}
       </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { useDeviceFingerprint } from '@/composables/useDeviceFingerprint';
+import { useRecaptcha } from '@/composables/useRecaptcha';
 import Swal from 'sweetalert2';
 
 const props = defineProps({
@@ -140,12 +156,14 @@ const props = defineProps({
 
 const emit = defineEmits(['completed']);
 const { getFingerprint, attachToRequest } = useDeviceFingerprint();
+const { shouldShow: showRecaptcha, recaptchaError, renderRecaptcha, getToken, reset: resetRecaptcha, recaptchaToken } = useRecaptcha();
 
 const syncStatus = ref('idle'); // idle, syncing, completed
 const elapsedTime = ref(0);
 const totalDuration = ref(30); // Default 30 seconds
 const completing = ref(false);
 const startTime = ref(null);
+const recaptchaCompleted = ref(false);
 let syncInterval = null;
 
 const appName = computed(() => {
@@ -204,13 +222,53 @@ const startSync = () => {
         confirmButtonColor: '#6366f1',
         timer: 2000
       });
+
+      // Render reCAPTCHA immediately if needed
+      console.log('[AppSyncTask] Sync complete - checking reCAPTCHA', {
+        showRecaptcha: showRecaptcha.value,
+        hasRecentFraud: showRecaptcha.value
+      });
+
+      if (showRecaptcha.value) {
+        console.log('[AppSyncTask] Manually triggering reCAPTCHA render');
+        setTimeout(() => {
+          console.log('[AppSyncTask] About to call renderRecaptcha');
+          renderRecaptcha('recaptcha-container-appsync');
+        }, 500);
+      } else {
+        console.log('[AppSyncTask] NOT rendering reCAPTCHA - showRecaptcha is false');
+      }
     }
   }, 1000);
 };
 
 const completeTask = async () => {
   completing.value = true;
+
+  // If reCAPTCHA is required, wait for it to render and be completed
+  if (showRecaptcha.value) {
+    // Make sure reCAPTCHA is rendered
+    await renderRecaptcha('recaptcha-container-appsync');
+
+    // Get the token - if null, user hasn't completed it yet
+    const token = getToken();
+    if (!token) {
+      completing.value = false;
+      Swal.fire({
+        icon: 'warning',
+        title: 'CAPTCHA Required',
+        text: 'Please complete the CAPTCHA verification below before submitting.',
+        background: '#1f2937',
+        color: '#fff'
+      });
+      return;
+    }
+  }
+
   const duration = Math.floor((Date.now() - startTime.value) / 1000);
+
+  // Get reCAPTCHA token if triggered by fraud
+  const recaptchaToken = showRecaptcha.value ? getToken() : null;
 
   const requestData = attachToRequest({
     response_data: {
@@ -219,7 +277,8 @@ const completeTask = async () => {
       sync_duration: elapsedTime.value,
       sync_completed: true
     },
-    duration: duration
+    duration: duration,
+    recaptcha_token: recaptchaToken
   });
 
   router.post(`/tasks/${props.task.id}/complete`, requestData, {
@@ -252,6 +311,21 @@ const completeTask = async () => {
 onUnmounted(() => {
   if (syncInterval) {
     clearInterval(syncInterval);
+  }
+});
+
+// Render reCAPTCHA when sync is completed (only if fraud detected)
+watch(syncStatus, async (newStatus) => {
+  if (newStatus === 'completed' && showRecaptcha.value) {
+    await nextTick();
+    renderRecaptcha('recaptcha-container-appsync');
+  }
+});
+
+// Track when reCAPTCHA is completed
+watch(recaptchaToken, (newToken) => {
+  if (newToken) {
+    recaptchaCompleted.value = true;
   }
 });
 </script>

@@ -226,4 +226,92 @@ All settings in `global_settings.ai_configuration`:
 - `tasks_to_generate` counts
 - `ai_generation_frequency_hours` (default: 168 = weekly)
 - `min_task_templates_threshold` (default: 50)
+
+---
+
+## Queue Workers & Supervisor Setup
+
+### Current Queue Workers Command (Production)
+
+```bash
+# Kill existing workers first (if restarting)
+ps aux | grep "queue:work" | grep qiviotalk | awk '{print $2}' | xargs kill -9
+
+# Start 2 queue workers with all queues
+cd /home/qiviotalk/business.qiviotalk.online && nohup php artisan queue:work --queue=default,validation,commissions --sleep=3 --tries=3 --max-time=28800 >> storage/logs/queue.log 2>&1 &
+cd /home/qiviotalk/business.qiviotalk.online && nohup php artisan queue:work --queue=default,validation,commissions --sleep=3 --tries=3 --max-time=28800 >> storage/logs/queue.log 2>&1 &
+```
+
+### Important Queues
+
+- `default`: General jobs (task assignments, notifications, etc.)
+- `validation`: Validation-related jobs
+- `commissions`: Commission disbursement jobs (Bus::batch for massive parallel processing)
+
+### Laravel Scheduler (Cron)
+
+Already configured in crontab - runs every minute:
+
+```bash
+* * * * * cd /home/qiviotalk/business.qiviotalk.online && php artisan schedule:run >> /dev/null 2>&1
+```
+
+### Scheduled Jobs (see app/Console/Kernel.php)
+
+- **Every Minute**: Commission disbursement (testing - change to dailyAt('00:05') in production)
+- **Hourly**: Purge unpaid accounts, Mature pending earnings
+- **Daily 00:01**: Assign daily tasks to all users
+- **Daily 02:00**: Cleanup soft-deleted records
+- **Weekly Sunday 03:00**: Generate AI task templates
+- **Weekly Monday 00:00**: Reset weekly task counters
+- **Monthly 1st 00:00**: Reset monthly task counters
+
+## Commission Disbursement System
+
+### How It Works (Per Blueprint)
+
+1. **Throughout the day**: Users complete tasks → Commissions recorded in ledger as `PENDING`
+2. **At scheduled time**: `php artisan commissions:disburse` runs
+3. **Batch processing**: Jobs dispatched via `Bus::batch()` for massive parallel processing
+4. **Each job**: Credits user's `withdrawable_balance` + sends real-time Pusher notification
+5. **Queue**: Jobs go to `commissions` queue for processing
+
+### Testing Commands
+
+```bash
+# Check pending commissions
+php artisan tinker
+>>> App\Models\CommissionLedger::where('status', 'PENDING')->count();
+
+# Manually trigger disbursement
+php artisan commissions:disburse
+
+# Dry run to preview (no actual disbursement)
+php artisan commissions:disburse --dry-run
+
+# Monitor batch progress
+php artisan queue:batches
+
+# Process jobs manually (for testing)
+php artisan queue:work --queue=commissions --once
+```
+
+### Commission Flow
+
+```
+Task Completed (User A)
+    ↓
+Task Completer: PENDING balance (matures in 72hrs)
+    ↓
+Upline Referrers: Commission stored in ledger as PENDING
+    ↓
+Scheduler runs commissions:disburse (every minute for testing)
+    ↓
+Bus::batch() creates jobs for each user with pending commissions
+    ↓
+Jobs processed by commissions queue worker
+    ↓
+Upline: WITHDRAWABLE balance credited + Pusher notification sent 🔔
+```
+
 # business-crowdfund

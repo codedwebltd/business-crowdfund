@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>reCAPTCHA Test</title>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+</head>
+<body style="background: #1a1a2e; color: white; padding: 50px; font-family: Arial;">
+    <h1>🔒 reCAPTCHA Simple Test</h1>
+    <p>If you see a checkbox below, the reCAPTCHA key is valid:</p>
+
+    <div class="g-recaptcha" data-sitekey="6LfmYTssAAAAAD0H-S8EYUxORRqY9E_jkvAZpW_d"></div>
+
+    <script>
+        console.log('Test page loaded');
+        console.log('Site key: 6LfmYTssAAAAAD0H-S8EYUxORRqY9E_jkvAZpW_d');
+        console.log('Current domain:', window.location.hostname);
+
+        // Check if reCAPTCHA loaded
+        setTimeout(() => {
+            if (window.grecaptcha) {
+                console.log('✅ grecaptcha loaded successfully');
+            } else {
+                console.error('❌ grecaptcha NOT loaded');
+            }
+        }, 3000);
+    </script>
+
+    <div style="margin-top: 30px; background: #2a2a3e; padding: 20px; border-radius: 10px;">
+        <h3>Debug Info:</h3>
+        <p><strong>Domain:</strong> <span id="domain"></span></p>
+        <p><strong>reCAPTCHA Type:</strong> v2 Checkbox</p>
+        <p><strong>Site Key:</strong> 6LfmYTssAAAAAD0H-S8EYUxORRqY9E_jkvAZpW_d</p>
+        <p style="color: #ffa500;">⚠️ Check browser console (F12) for errors</p>
+    </div>
+
+    <script>
+        document.getElementById('domain').textContent = window.location.hostname;
+    </script>
+</body>
+</html>

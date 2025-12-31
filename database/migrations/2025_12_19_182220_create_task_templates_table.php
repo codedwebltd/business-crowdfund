@@ -23,6 +23,7 @@ return new class extends Migration
             // Task Content
             $table->json('questions')->nullable()->comment('Question structure for surveys/tasks');
             $table->json('validation_rules')->nullable()->comment('Min time, required fields, etc.');
+            $table->json('data')->nullable()->comment('Additional metadata: video file_size, format, product info, etc.');
 
             // Rewards & Timing
             $table->decimal('reward_amount', 15, 2)->index();

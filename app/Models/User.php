@@ -20,7 +20,8 @@ class User extends Authenticatable
         'role', 'bank_name', 'account_number', 'account_name', 'wallet_details',
         'referral_code', 'referred_by_id', 'plan_id', 'activation_amount', 'activation_date',
         'status', 'rank_id', 'direct_referrals_count', 'total_team_size',
-        'last_task_completed_at', 'last_login_at', 'country', 'nin', 'bvn',
+        'last_task_completed_at', 'total_tasks_completed', 'tasks_completed_this_week',
+        'tasks_completed_this_month', 'last_login_at', 'country', 'nin', 'bvn',
         'utility_bill_path', 'selfie_path', 'kyc_verified_at', 'password_confirmation',
         'task_ban_until', 'device_fingerprint','notification_preferences',
     ];
@@ -45,6 +46,9 @@ class User extends Authenticatable
         'device_fingerprint' => 'array',
         'direct_referrals_count' => 'integer',
         'total_team_size' => 'integer',
+        'total_tasks_completed' => 'integer',
+        'tasks_completed_this_week' => 'integer',
+        'tasks_completed_this_month' => 'integer',
     ];
 
     // Relationships
@@ -78,6 +82,14 @@ class User extends Authenticatable
     public function isActive(): bool { return $this->status === 'ACTIVE'; }
     public function hasCompletedKYC(): bool { return !is_null($this->kyc_verified_at); }
     public function has2FAEnabled(): bool { return $this->google2fa_enabled && !is_null($this->google2fa_secret); }
+
+    /**
+     * Get the channels to broadcast notifications on
+     */
+    public function receivesBroadcastNotificationsOn(): string
+    {
+        return 'user.' . $this->id;
+    }
 
     public function isAtLeast18(): bool
     {

@@ -152,6 +152,27 @@
         </div>
       </div>
 
+      <!-- reCAPTCHA (only shows if user has recent fraud incidents) -->
+      <div v-if="showRecaptcha" class="mb-4">
+        <div id="recaptcha-container-survey" class="flex justify-center"></div>
+        <p v-if="recaptchaError" class="text-red-400 text-xs mt-2 text-center">
+          ⚠️ Please complete the CAPTCHA verification
+        </p>
+      </div>
+
+      <!-- Minimum Time Warning -->
+      <div v-if="!canSubmitByTime" class="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4 mb-4">
+        <div class="flex items-center gap-3">
+          <svg class="w-6 h-6 text-orange-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+          </svg>
+          <div>
+            <p class="text-orange-400 font-semibold">Please take your time to read carefully</p>
+            <p class="text-gray-300 text-sm">You can submit in {{ remainingTime }} seconds</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Submit Button -->
       <div class="mt-6">
         <button
@@ -162,10 +183,13 @@
           <svg v-if="isSubmitting" class="animate-spin w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
           </svg>
+          <svg v-else-if="!canSubmitByTime" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+          </svg>
           <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
-          {{ isSubmitting ? 'Submitting...' : 'Submit Survey' }}
+          {{ isSubmitting ? 'Submitting...' : !canSubmitByTime ? `Wait ${remainingTime}s` : 'Submit Survey' }}
         </button>
       </div>
     </form>
@@ -173,8 +197,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { useRecaptcha } from '@/composables/useRecaptcha';
 import Swal from 'sweetalert2';
 
 const props = defineProps({
@@ -185,11 +210,14 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['completed']);
+const { shouldShow: showRecaptcha, recaptchaError, renderRecaptcha, getToken } = useRecaptcha();
 
 const answers = ref({});
 const isSubmitting = ref(false);
 const errorMessage = ref('');
 const startTime = ref(Date.now());
+const elapsedTime = ref(0);
+const timerInterval = ref(null);
 
 // Get minimum time: Global settings -> Task template -> Default 30s
 const getMinimumTime = () => {
@@ -199,6 +227,15 @@ const getMinimumTime = () => {
 };
 
 const minimumTime = ref(getMinimumTime());
+
+const remainingTime = computed(() => {
+  const remaining = Math.ceil((minimumTime.value - elapsedTime.value) / 1000);
+  return Math.max(0, remaining);
+});
+
+const canSubmitByTime = computed(() => {
+  return elapsedTime.value >= minimumTime.value;
+});
 
 // Parse questions from task template
 const questions = computed(() => {
@@ -225,6 +262,9 @@ const answeredCount = computed(() => {
 });
 
 const canSubmit = computed(() => {
+  // Check time requirement first
+  if (!canSubmitByTime.value) return false;
+
   // Check if all required questions are answered
   const requiredQuestions = questions.value.filter(q => q.required !== false);
   return requiredQuestions.every(q => {
@@ -244,8 +284,19 @@ onMounted(() => {
     }
   });
 
+  // Start timer
+  timerInterval.value = setInterval(() => {
+    elapsedTime.value = Date.now() - startTime.value;
+  }, 1000);
+
   // Mark task as started
   markTaskAsStarted();
+});
+
+onUnmounted(() => {
+  if (timerInterval.value) {
+    clearInterval(timerInterval.value);
+  }
 });
 
 const markTaskAsStarted = async () => {
@@ -294,12 +345,36 @@ const submitSurvey = async () => {
 
   isSubmitting.value = true;
 
+  // If reCAPTCHA is required, wait for it to render and be completed
+  if (showRecaptcha.value) {
+    // Make sure reCAPTCHA is rendered
+    await renderRecaptcha('recaptcha-container-survey');
+
+    // Get the token - if null, user hasn't completed it yet
+    const token = getToken();
+    if (!token) {
+      isSubmitting.value = false;
+      Swal.fire({
+        icon: 'warning',
+        title: 'CAPTCHA Required',
+        text: 'Please complete the CAPTCHA verification below before submitting.',
+        background: '#1f2937',
+        color: '#fff'
+      });
+      return;
+    }
+  }
+
+  // Get reCAPTCHA token if triggered by fraud
+  const recaptchaToken = showRecaptcha.value ? getToken() : null;
+
   try {
     router.post(`/tasks/${props.task.id}/complete`, {
       response_data: {
         answers: answers.value
       },
-      duration: Math.floor(timeSpent / 1000) // in seconds
+      duration: Math.floor(timeSpent / 1000), // in seconds
+      recaptcha_token: recaptchaToken
     }, {
       preserveState: true,
       onSuccess: (page) => {
@@ -325,7 +400,7 @@ const submitSurvey = async () => {
       },
       onError: (errors) => {
         isSubmitting.value = false;
-        errorMessage.value = errors.message || 'Failed to submit survey. Please try again.';
+        errorMessage.value = errors.error || errors.message || 'Failed to submit survey. Please try again.';
 
         // Show error alert
         Swal.fire({
@@ -344,6 +419,14 @@ const submitSurvey = async () => {
     console.error('Survey submission error:', error);
   }
 };
+
+// Render reCAPTCHA when form is ready (only if fraud detected)
+onMounted(async () => {
+  if (showRecaptcha.value) {
+    await nextTick();
+    renderRecaptcha('recaptcha-container-survey');
+  }
+});
 </script>
 
 <style scoped>

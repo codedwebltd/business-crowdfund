@@ -13,33 +13,33 @@ class TaskTemplateSeeder extends Seeder
     public function run(): void
     {
         $tasks = [
-            // Task 1: AI Rating (AI Training)
+            // Task 1: Survey Task (from map.md blueprint: 60% of daily tasks)
             [
-                'title' => 'Rate AI Assistant Responses',
-                'description' => 'Help train AI models by rating the quality and accuracy of AI-generated responses.',
-                'category' => 'AI_RATING',
+                'title' => 'Social Media Usage Survey',
+                'description' => 'Share your social media habits and preferences to help us understand user behavior.',
+                'category' => 'SURVEY',
                 'reward_amount' => 250.00,
                 'completion_time_seconds' => 120,
                 'questions' => [
                     [
                         'id' => 1,
-                        'text' => 'Read this AI-generated response: "The capital of Nigeria is Lagos." Is this response accurate?',
+                        'text' => 'Which social media platform do you use most frequently?',
                         'type' => 'single_choice',
-                        'options' => ['Accurate', 'Inaccurate', 'Partially Accurate'],
+                        'options' => ['Facebook', 'Instagram', 'TikTok', 'Twitter/X', 'WhatsApp'],
                         'required' => true,
                     ],
                     [
                         'id' => 2,
-                        'text' => 'How would you rate the helpfulness of this AI response?',
+                        'text' => 'How many hours do you spend on social media daily?',
                         'type' => 'single_choice',
-                        'options' => ['Very Helpful', 'Helpful', 'Neutral', 'Not Helpful'],
+                        'options' => ['Less than 1hr', '1-2hrs', '3-5hrs', 'More than 5hrs'],
                         'required' => true,
                     ],
                     [
                         'id' => 3,
-                        'text' => 'Does the AI response sound natural and human-like?',
+                        'text' => 'Would you pay for ad-free social media?',
                         'type' => 'single_choice',
-                        'options' => ['Yes', 'No', 'Somewhat'],
+                        'options' => ['Yes', 'No', 'Maybe'],
                         'required' => true,
                     ],
                 ],
@@ -55,38 +55,38 @@ class TaskTemplateSeeder extends Seeder
                 'current_completions' => 0,
             ],
 
-            // Task 2: Text Moderation (AI Training)
+            // Task 2: App Sync Task (from map.md blueprint: 15% of daily tasks)
             [
-                'title' => 'Content Moderation - Flag Inappropriate Text',
-                'description' => 'Help AI learn what content is appropriate by reviewing and flagging text samples.',
-                'category' => 'TEXT_MODERATION',
-                'reward_amount' => 300.00,
-                'completion_time_seconds' => 90,
+                'title' => 'Daily App Usage Report',
+                'description' => 'Sync your device app usage data to help us understand mobile behavior patterns.',
+                'category' => 'APP_SYNC',
+                'reward_amount' => 200.00,
+                'completion_time_seconds' => 60,
                 'questions' => [
                     [
                         'id' => 1,
-                        'text' => 'Review this comment: "Great product! Highly recommend to everyone." Does it violate community guidelines?',
+                        'text' => 'What is your primary mobile device?',
                         'type' => 'single_choice',
-                        'options' => ['Safe', 'Spam', 'Offensive', 'Misleading'],
+                        'options' => ['Android', 'iPhone', 'Other Smartphone', 'Tablet'],
                         'required' => true,
                     ],
                     [
                         'id' => 2,
-                        'text' => 'What is the overall tone of this text?',
+                        'text' => 'How many apps do you have installed on your device?',
                         'type' => 'single_choice',
-                        'options' => ['Positive', 'Neutral', 'Negative', 'Aggressive'],
+                        'options' => ['Less than 20', '20-50', '50-100', 'More than 100'],
                         'required' => true,
                     ],
                     [
                         'id' => 3,
-                        'text' => 'Would you allow this content on a family-friendly platform?',
+                        'text' => 'Which type of apps do you use most?',
                         'type' => 'single_choice',
-                        'options' => ['Yes', 'No', 'With Warning'],
+                        'options' => ['Social Media', 'Gaming', 'Productivity', 'Entertainment'],
                         'required' => true,
                     ],
                 ],
                 'validation_rules' => [
-                    'minimum_time' => 45,
+                    'minimum_time' => 30,
                     'maximum_time' => 600,
                     'all_questions_required' => true,
                 ],
@@ -202,8 +202,9 @@ class TaskTemplateSeeder extends Seeder
         }
 
         $this->command->info('✅ 4 Task Templates created successfully');
-        $this->command->info('   - 2 AI Training tasks (AI Rating, Text Moderation)');
-        $this->command->info('   - 1 Video Watch task');
-        $this->command->info('   - 1 Product Review task');
+        $this->command->info('   - 1 Survey task (SURVEY)');
+        $this->command->info('   - 1 App Sync task (APP_SYNC)');
+        $this->command->info('   - 1 Video Watch task (VIDEO)');
+        $this->command->info('   - 1 Product Review task (PRODUCT_REVIEW)');
     }
 }

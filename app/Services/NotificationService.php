@@ -89,11 +89,49 @@ class NotificationService
     {
         try {
             $user->notify(new WithdrawalNotification($type, $data));
+
+            // Broadcast real-time notification via Pusher
+            broadcast(new \App\Events\NotificationSent($user->id, [
+                'title' => $this->getTitle($type, $data),
+                'message' => $this->getMessage($type, $data),
+                'action_url' => '/notifications',
+                'action_label' => 'View Notifications',
+                'icon' => $this->getIcon($type),
+            ]));
+
             return true;
         } catch (\Exception $e) {
             logger()->error("Database notification failed: " . $e->getMessage());
             return false;
         }
+    }
+
+    protected function getTitle(string $type, array $data): string
+    {
+        return match ($type) {
+            'withdrawal_requested' => 'Withdrawal Request Received',
+            'withdrawal_approved' => 'Withdrawal Approved',
+            'withdrawal_completed' => 'Withdrawal Completed',
+            'withdrawal_rejected' => 'Withdrawal Rejected',
+            'task_completed' => 'Task Completed',
+            'referral_bonus' => 'Referral Bonus Earned',
+            'rank_upgraded' => 'Rank Upgraded',
+            default => 'Notification',
+        };
+    }
+
+    protected function getIcon(string $type): string
+    {
+        return match ($type) {
+            'withdrawal_requested' => '⏳',
+            'withdrawal_approved' => '✅',
+            'withdrawal_completed' => '💰',
+            'withdrawal_rejected' => '❌',
+            'task_completed' => '✓',
+            'referral_bonus' => '🎉',
+            'rank_upgraded' => '⭐',
+            default => '🔔',
+        };
     }
 
     /**

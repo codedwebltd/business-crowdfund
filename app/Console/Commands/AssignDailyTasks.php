@@ -31,7 +31,7 @@ class AssignDailyTasks extends Command
         // Get global settings
         $settings = GlobalSetting::first();
         $dailyLimits = $settings->daily_task_limits ?? ['basic' => 8, 'premium' => 15, 'vip' => 25];
-        $distribution = $settings->task_distribution_percentages ?? ['surveys' => 60, 'videos' => 20, 'syncs' => 15, 'reviews' => 5];
+        $distribution = $settings->task_distribution_percentages ?? ['SURVEY' => 60, 'VIDEO' => 20, 'APP_SYNC' => 15, 'PRODUCT_REVIEW' => 5];
 
         // Get all active users
         $users = User::where('status', 'active')->get();
@@ -63,10 +63,10 @@ class AssignDailyTasks extends Command
 
                 // Calculate task distribution (from map.md: 60% surveys, 20% videos, 15% syncs, 5% reviews)
                 $taskCount = [
-                    'SURVEY' => (int) ceil($maxTasks * ($distribution['surveys'] / 100)),
-                    'VIDEO' => (int) ceil($maxTasks * ($distribution['videos'] / 100)),
-                    'APP_SYNC' => (int) ceil($maxTasks * ($distribution['syncs'] / 100)),
-                    'PRODUCT_REVIEW' => (int) ceil($maxTasks * ($distribution['reviews'] / 100)),
+                    'SURVEY' => (int) ceil($maxTasks * (($distribution['SURVEY'] ?? 60) / 100)),
+                    'VIDEO' => (int) ceil($maxTasks * (($distribution['VIDEO'] ?? 20) / 100)),
+                    'APP_SYNC' => (int) ceil($maxTasks * (($distribution['APP_SYNC'] ?? 15) / 100)),
+                    'PRODUCT_REVIEW' => (int) ceil($maxTasks * (($distribution['PRODUCT_REVIEW'] ?? 5) / 100)),
                 ];
 
                 // Adjust to exact max tasks (from map.md logic)

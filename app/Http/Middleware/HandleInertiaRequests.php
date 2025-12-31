@@ -35,17 +35,37 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
+        // Check for recent fraud incidents (for reCAPTCHA trigger)
+        $hasRecentFraud = false;
+        if ($user) {
+            $recentFraudCount = \App\Models\FraudIncident::where('user_id', $user->id)
+                ->where('created_at', '>', now()->subDays(7))
+                ->count();
+            $hasRecentFraud = $recentFraudCount > 0;
+        }
+
+        // Get global settings for reCAPTCHA
+        $globalSettings = \App\Models\GlobalSetting::first();
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
             ],
+            'unreadNotifications' => $user ? $user->unreadNotifications()->count() : 0,
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
                 'warning' => $request->session()->get('warning'),
                 'info' => $request->session()->get('info'),
             ],
+            'hasRecentFraud' => $hasRecentFraud,
+            'globalSettings' => $globalSettings ? [
+                'recaptcha_enabled' => $globalSettings->recaptcha_enabled,
+                'recaptcha_site_key' => $globalSettings->recaptcha_site_key,
+            ] : null,
         ];
     }
 }
