@@ -37,9 +37,9 @@
         </div>
 
         <!-- Alerts Section -->
-        <div v-if="testimonialRequired || kycRequired || !canWithdrawToday" class="space-y-3">
+        <div v-if="(testimonialRequired && user.wallet?.withdrawable_balance > 0) || kycRequired || !canWithdrawToday" class="space-y-3">
           <!-- Testimonial Required -->
-          <div v-if="testimonialRequired" class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+          <div v-if="testimonialRequired && user.wallet?.withdrawable_balance > 0" class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
             <div class="flex items-start gap-3">
               <svg class="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -62,10 +62,12 @@
               </svg>
               <div class="flex-1">
                 <p class="text-red-400 font-semibold mb-1">KYC Verification Required</p>
-                <p class="text-gray-300 text-sm mb-3">For withdrawals above {{ formatMoney(settings.kyc_requirements.withdrawal_requirements.nin.threshold) }}, you need to complete KYC verification (NIN upload).</p>
-                <Link href="/kyc" class="inline-block px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition">
-                  Complete KYC
-                </Link>
+                <p class="text-gray-300 text-sm mb-3">
+                  {{ settings.enable_kyc_on_first_withdrawal ? 'KYC verification is required for your first withdrawal.' : `For withdrawals above ${formatMoney(settings.kyc_withdrawal_threshold)}, you need to complete KYC verification.` }}
+                </p>
+                <button @click="showKycModal = true" class="inline-block px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition">
+                  Complete KYC Verification
+                </button>
               </div>
             </div>
           </div>
@@ -288,6 +290,33 @@
             </div>
           </div>
 
+          <!-- 2FA Verification (if enabled) -->
+          <div v-if="twoFactorEnabled" class="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+            <div class="bg-gradient-to-r from-orange-500 to-purple-600 p-4">
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Two-Factor Authentication
+              </h3>
+            </div>
+            <div class="p-6">
+              <label class="text-sm font-semibold text-gray-300 mb-2 block">
+                Enter 6-digit code from your authenticator app
+              </label>
+              <input
+                v-model="withdrawalForm.two_factor_code"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="6"
+                placeholder="000000"
+                class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white text-center text-2xl font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+              <p class="text-xs text-gray-400 mt-2">Open your authenticator app (Google Authenticator, Authy, etc.) to get the code</p>
+            </div>
+          </div>
+
           <!-- Submit Button -->
           <button
             @click="submitWithdrawal"
@@ -336,6 +365,21 @@
           </div>
         </div>
     </div>
+
+    <!-- KYC Upload Modal -->
+    <KYCUploadModal
+      :show="showKycModal"
+      :kyc-requirements="settings.kyc_requirements || {}"
+      :user-info="{
+        full_name: user.full_name,
+        email: user.email,
+        date_of_birth: user.date_of_birth,
+        nin: user.nin,
+        bvn: user.bvn
+      }"
+      @close="showKycModal = false"
+      @submitted="handleKycSubmitted"
+    />
   </UserLayout>
 </template>
 
@@ -343,6 +387,7 @@
 import { ref, computed } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import UserLayout from '@/Layouts/UserLayout.vue';
+import KYCUploadModal from '@/Components/KYCUploadModal.vue';
 import Swal from 'sweetalert2';
 
 const props = defineProps({
@@ -359,14 +404,17 @@ const props = defineProps({
   withdrawalRate: Number,
   bankEnabled: Boolean,
   cryptoEnabled: Boolean,
+  twoFactorEnabled: Boolean,
 });
 
 const loading = ref(false);
 const showTestimonialModal = ref(false);
+const showKycModal = ref(false);
 
 const withdrawalForm = ref({
   amount: null,
   method: props.cryptoEnabled && props.hasCryptoDetails ? 'crypto' : 'bank',
+  two_factor_code: '',
 });
 
 const testimonialForm = ref({
@@ -427,6 +475,7 @@ const submitWithdrawal = () => {
         confirmButtonColor: '#10b981',
       });
       withdrawalForm.value.amount = null;
+      withdrawalForm.value.two_factor_code = '';
     },
     onError: (errors) => {
       const errorMsg = Object.values(errors)[0] || 'Failed to process withdrawal';
@@ -440,6 +489,21 @@ const submitWithdrawal = () => {
       });
     },
     onFinish: () => loading.value = false,
+  });
+};
+
+const handleKycSubmitted = () => {
+  showKycModal.value = false;
+  Swal.fire({
+    icon: 'success',
+    title: 'KYC Submitted!',
+    text: 'Your KYC verification has been submitted for review. Refreshing page...',
+    background: '#1f2937',
+    color: '#fff',
+    confirmButtonColor: '#10b981',
+    timer: 2000
+  }).then(() => {
+    router.reload();
   });
 };
 

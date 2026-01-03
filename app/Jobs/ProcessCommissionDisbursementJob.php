@@ -79,12 +79,12 @@ class ProcessCommissionDisbursementJob implements ShouldQueue
             // Create transaction record
             Transaction::create([
                 'user_id' => $this->userId,
-                'transaction_type' => 'REFERRAL_BONUS',
+                'transaction_type' => 'TEAM_COMMISSION',
                 'balance_type' => 'WITHDRAWABLE',
                 'amount' => $totalAmount,
                 'status' => 'COMPLETED',
                 'is_credit' => true,
-                'description' => "Daily team commission payout ({$commissions->count()} earnings)",
+                'description' => "Team commission payout ({$commissions->count()} earnings)",
                 'metadata' => [
                     'commission_count' => $commissions->count(),
                     'commission_ledger_ids' => $this->commissionLedgerIds,
@@ -103,7 +103,7 @@ class ProcessCommissionDisbursementJob implements ShouldQueue
 
             // Send notification (outside transaction)
             try {
-                $notificationService->send($user, 'referral_bonus', [
+                $notificationService->send($user, 'team_commission', [
                     'amount' => $totalAmount,
                     'message' => "Great news! You've earned ₦" . number_format($totalAmount, 2) . " from your team's activity. Keep growing your network to maximize your earnings.",
                 ]);

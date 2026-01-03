@@ -254,4 +254,57 @@ Return ONLY this JSON structure (no markdown, no backticks):
 
         return $this->generateJSON($systemPrompt, $userPrompt, $maxTokens);
     }
+
+    /**
+     * Analyze and review a testimonial
+     *
+     * @param string $testimonial
+     * @return array|null
+     */
+    public function reviewTestimonial($testimonial)
+    {
+        $settings = $this->getSettings();
+        $appName = $settings->app_name ?? 'our platform';
+        $maxTokens = 1500;
+
+        $systemPrompt = "You are a STRICT AI testimonial reviewer for {$appName}. Your job is to analyze user testimonials and determine:
+1. If it's GENUINELY POSITIVE with NO doubts/complaints (approve automatically)
+2. If it's trash/jargon/random text (flag as trash)
+3. If it's negative or complaining (flag accordingly)
+4. Correct any grammar/spelling errors while keeping the original tone
+
+CRITICAL RULES:
+- ONLY approve testimonials that are CLEARLY POSITIVE with NO complaints, doubts, or negative sentiment
+- ANY mention of distrust, doubt, complaints, issues, delays = MANUAL REVIEW (do NOT approve)
+- Be lenient with grammar/spelling, but STRICT with sentiment
+- When in doubt, send to MANUAL REVIEW (better safe than sorry)
+- The platform needs feedback from complaints to improve, so flag them for manual review
+
+Return ONLY valid JSON with your analysis.";
+
+        $userPrompt = "Analyze this testimonial and return your assessment:
+
+Testimonial:
+\"{$testimonial}\"
+
+Return ONLY this exact JSON structure (no markdown, no backticks):
+{
+  \"approved\": true/false (approve if genuinely positive, even with poor grammar),
+  \"trash_testimonial\": true/false (random text, repeated words, nonsense that doesn't make sense),
+  \"negative_testimonial\": true/false (speaking bad about the platform, harsh criticism),
+  \"complaint_testimonial\": true/false (legitimate complaint or issue reported),
+  \"corrected_message\": \"Grammar-corrected version in same tone (fix spelling/grammar but keep natural feel, NO dashes or over-formatting)\",
+  \"reason\": \"Brief explanation of your decision (1-2 sentences)\"
+}
+
+Evaluation criteria:
+- APPROVE if: ONLY if 100% positive, praising the platform, no doubts, no complaints, genuine good experience (even with bad grammar)
+- TRASH if: Random characters, repeated nonsense, no coherent meaning, not even attempting to write a review
+- NEGATIVE if: Any criticism, distrust, saying platform is bad/scam/fraud, expressing doubt about legitimacy
+- COMPLAINT if: Reporting issues, delays, problems, expressing ANY concerns or doubts (these need manual review for improvement)
+
+STRICT APPROVAL POLICY: When in doubt, DO NOT APPROVE. Only approve clearly positive testimonials. Poor English is OK, but sentiment MUST be genuinely positive with NO complaints or doubts.";
+
+        return $this->generateJSON($systemPrompt, $userPrompt, $maxTokens);
+    }
 }

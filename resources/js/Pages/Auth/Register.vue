@@ -17,13 +17,48 @@
                         <h1 class="text-3xl font-bold text-white mb-2">Create Account</h1>
                         <p class="text-gray-300">Join thousands earning daily</p>
 
-                        <!-- Referrer Indicator -->
-                        <div v-if="referrer" class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500/20 to-purple-600/20 border border-blue-400/30 rounded-full">
-                            <span class="text-sm text-gray-300">Referred by</span>
-                            <span class="font-bold text-white">{{ referrer.full_name }}</span>
-                            <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                            </svg>
+                        <!-- Elegant Referrer Card -->
+                        <div v-if="referrer" class="mt-5 w-full max-w-sm mx-auto group">
+                            <div class="relative bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-lg hover:shadow-orange-500/20 transition-all duration-500">
+                                <!-- Subtle glow effect -->
+                                <div class="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                                <div class="relative flex items-center gap-4">
+                                    <!-- Avatar with ring -->
+                                    <div class="relative flex-shrink-0">
+                                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-purple-500 p-0.5">
+                                            <div class="w-full h-full rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm">
+                                                <span class="text-white font-bold text-lg">{{ referrer.full_name?.charAt(0) || 'R' }}</span>
+                                            </div>
+                                        </div>
+                                        <!-- Verified badge overlay -->
+                                        <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-slate-900">
+                                            <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    <!-- Info -->
+                                    <div class="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs text-gray-400">Invited by:</span>
+                                            <h3 class="text-white font-semibold text-base truncate">{{ referrer.full_name }}</h3>
+                                        </div>
+                                        <span class="inline-flex items-center gap-1 text-xs text-orange-400 w-fit">
+                                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                            </svg>
+                                            {{ referrer.rank?.display_name || 'Member' }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Arrow icon -->
+                                    <svg class="w-5 h-5 text-gray-500 flex-shrink-0 group-hover:text-orange-400 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                                    </svg>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -66,37 +101,6 @@
                                 <label class="block text-sm font-semibold text-gray-200 mb-2">Email Address</label>
                                 <input v-model="form.email" type="email" required placeholder="you@example.com"
                                     class="w-full px-4 py-3.5 bg-white/10 border-2 border-white/20 rounded-xl focus:border-orange-500 focus:bg-white/20 focus:ring-2 focus:ring-orange-500/50 outline-none transition-all text-white placeholder-gray-400" />
-                            </div>
-
-                            <!-- Referrer Card -->
-                            <div v-if="form.referral_code && referrer" class="bg-gradient-to-br from-orange-500/20 to-purple-600/20 backdrop-blur-xl border-2 border-orange-500/30 rounded-2xl p-6 shadow-lg">
-                                <div class="flex items-center gap-4">
-                                    <!-- Avatar SVG -->
-                                    <div class="flex-shrink-0">
-                                        <div class="w-16 h-16 bg-gradient-to-br from-orange-400 to-purple-500 rounded-full flex items-center justify-center shadow-lg">
-                                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-
-                                    <!-- Referrer Info -->
-                                    <div class="flex-1 min-w-0">
-                                        <div class="flex items-center gap-2 mb-1">
-                                            <p class="text-white font-bold text-lg truncate">{{ referrer.full_name || 'Referrer' }}</p>
-                                            <!-- Verified Badge -->
-                                            <svg class="w-5 h-5 text-green-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                            </svg>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-orange-400 to-purple-500 text-white shadow-md">
-                                                {{ referrer.rank || 'Member' }}
-                                            </span>
-                                            <span class="text-gray-300 text-sm">Invited you</span>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
 
                             <button type="submit" :disabled="processing || !isStep1Valid"

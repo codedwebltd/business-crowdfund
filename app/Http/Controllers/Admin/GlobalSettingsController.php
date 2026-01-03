@@ -143,6 +143,7 @@ class GlobalSettingsController extends Controller
         GlobalSetting::first()->update($request->only([
             'kyc_requirements',
             'kyc_withdrawal_threshold',
+            'enable_kyc_on_first_withdrawal',
             'require_testimonial_first_withdrawal'
         ]));
         return back();

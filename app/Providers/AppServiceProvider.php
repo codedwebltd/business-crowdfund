@@ -5,9 +5,11 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use App\Models\GlobalSetting;
 use App\Models\User;
 use App\Models\Withdrawal;
+use App\Models\Plan;
 use App\Observers\GlobalSettingObserver;
 use App\Observers\UserObserver;
 use App\Observers\WithdrawalObserver;
@@ -28,6 +30,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Configure polymorphic morph map for Transaction reference relationship
+        Relation::morphMap([
+            'Plan' => Plan::class,
+            'Withdrawal' => Withdrawal::class,
+            'User' => User::class,
+        ]);
+
         // Load global settings and share with all views
         try {
             $globalSettings = GlobalSetting::get();

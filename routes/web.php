@@ -85,6 +85,9 @@ Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(
         $stats = [
             'totalEarnings' => $user->wallet ? $user->wallet->total_earned : 0,
             'availableBalance' => $user->wallet ? $user->wallet->withdrawable_balance : 0,
+            'pendingBalance' => $user->wallet ? $user->wallet->pending_balance : 0,
+            'totalWithdrawn' => $user->wallet ? $user->wallet->total_withdrawn : 0,
+            'pendingWithdrawal' => $user->withdrawals()->where('status', 'pending')->sum('amount_requested'),
             'tasksCompleted' => $user->tasks()->where('status', 'COMPLETED')->count(),
             'tasksCompletedToday' => $user->tasks()->where('status', 'COMPLETED')->whereDate('completed_at', today())->count(),
             'totalReferrals' => $user->directReferrals()->count(),
@@ -165,6 +168,11 @@ Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(
     Route::get('/withdrawal', [App\Http\Controllers\User\WithdrawalController::class, 'index'])->name('withdrawal');
     Route::post('/withdrawal', [App\Http\Controllers\User\WithdrawalController::class, 'store'])->name('withdrawal.store');
     Route::post('/testimonials', [App\Http\Controllers\User\TestimonialController::class, 'store'])->name('testimonials.store');
+
+    // KYC Routes
+    Route::post('/api/kyc/upload', [App\Http\Controllers\User\KycController::class, 'upload'])->name('kyc.upload');
+    Route::post('/kyc/submit', [App\Http\Controllers\User\KycController::class, 'submit'])->name('kyc.submit');
+    Route::get('/api/kyc/status', [App\Http\Controllers\User\KycController::class, 'status'])->name('kyc.status');
 
     // Transaction History Routes
     Route::get('/transactions', [App\Http\Controllers\User\TransactionController::class, 'index'])->name('transactions');
@@ -250,6 +258,20 @@ Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(
         Route::get('/transactions', [\App\Http\Controllers\Admin\TransactionController::class, 'index'])->name('admin.transactions');
         Route::post('/transactions/{id}/approve', [\App\Http\Controllers\Admin\TransactionController::class, 'approve']);
         Route::post('/transactions/{id}/reject', [\App\Http\Controllers\Admin\TransactionController::class, 'reject']);
+
+        // Testimonials
+        Route::get('/testimonials', [\App\Http\Controllers\Admin\TestimonialController::class, 'index'])->name('admin.testimonials');
+        Route::post('/testimonials/{id}/approve', [\App\Http\Controllers\Admin\TestimonialController::class, 'approve']);
+        Route::post('/testimonials/{id}/reject', [\App\Http\Controllers\Admin\TestimonialController::class, 'reject']);
+
+        // KYC Verifications
+        Route::get('/kyc', [\App\Http\Controllers\Admin\KycController::class, 'index'])->name('admin.kyc');
+        Route::post('/kyc/{id}/approve', [\App\Http\Controllers\Admin\KycController::class, 'approve']);
+        Route::post('/kyc/{id}/reject', [\App\Http\Controllers\Admin\KycController::class, 'reject']);
+
+        // Liquidity & Earnings
+        Route::get('/liquidity', [\App\Http\Controllers\Admin\LiquidityController::class, 'index'])->name('admin.liquidity.index');
+        Route::delete('/liquidity/{id}', [\App\Http\Controllers\Admin\LiquidityController::class, 'destroy'])->name('admin.liquidity.destroy');
     });
 });
 

@@ -378,6 +378,18 @@ class TaskController extends Controller
 
             DB::commit();
 
+            // Send task completion notification to the user
+            try {
+                $notificationService = app(\App\Services\NotificationService::class);
+                $notificationService->send($user, 'task_completed', [
+                    'amount' => $task->reward_amount,
+                    'task_name' => $task->taskTemplate->title,
+                    'message' => "You completed a task and earned ₦{$task->reward_amount}! It will be available after 72 hours.",
+                ]);
+            } catch (\Exception $e) {
+                logger()->error("Failed to send task completion notification: " . $e->getMessage());
+            }
+
             return back()->with('success', "Task completed! ₦{$task->reward_amount} will be available after 72 hours.");
 
         } catch (\Exception $e) {

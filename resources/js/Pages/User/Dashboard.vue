@@ -310,6 +310,24 @@
         color="blue"
       />
       <StatCard
+        title="Pending Balance"
+        :value="'₦' + formatNumber(stats?.pendingBalance || 0)"
+        icon="clock"
+        color="yellow"
+      />
+      <StatCard
+        title="Pending Withdrawal"
+        :value="'₦' + formatNumber(stats?.pendingWithdrawal || 0)"
+        icon="clock"
+        color="orange"
+      />
+      <StatCard
+        title="Total Withdrawn"
+        :value="'₦' + formatNumber(stats?.totalWithdrawn || 0)"
+        icon="currency"
+        color="purple"
+      />
+      <StatCard
         title="Tasks Completed"
         :value="formatNumber(stats.tasksCompleted)"
         icon="check"
@@ -559,7 +577,11 @@ const props = defineProps({
     default: () => ({
       totalEarnings: 0,
       availableBalance: 0,
+      pendingBalance: 0,
+      totalWithdrawn: 0,
+      pendingWithdrawal: 0,
       tasksCompleted: 0,
+      tasksCompletedToday: 0,
       totalReferrals: 0
     })
   }

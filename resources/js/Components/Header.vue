@@ -30,7 +30,7 @@
                     <Link href="/login" class="hidden sm:inline-flex text-sm font-bold text-gray-300 hover:text-white transition-colors">
                         Sign In
                     </Link>
-                    <Link href="/register" class="inline-flex items-center gap-2 bg-gradient-to-r from-orange-400 to-purple-500 text-white px-4 lg:px-5 py-2.5 rounded-lg text-sm font-bold shadow-lg hover:shadow-xl hover:shadow-orange-400/50 hover:scale-105 transition-all">
+                    <Link href="/login" class="inline-flex items-center gap-2 bg-gradient-to-r from-orange-400 to-purple-500 text-white px-4 lg:px-5 py-2.5 rounded-lg text-sm font-bold shadow-lg hover:shadow-xl hover:shadow-orange-400/50 hover:scale-105 transition-all">
                         Get Started
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>

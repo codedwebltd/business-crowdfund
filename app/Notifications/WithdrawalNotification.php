@@ -44,6 +44,9 @@ class WithdrawalNotification extends Notification
             'task_completed' => 'Task Completed',
             'referral_bonus' => 'Referral Bonus Earned',
             'rank_upgraded' => 'Rank Upgraded',
+            'testimonial_approved' => '✅ Testimonial Approved!',
+            'testimonial_review' => '⏳ Testimonial Under Review',
+            'testimonial_rejected' => '❌ Testimonial Rejected',
             default => 'Notification',
         };
     }
@@ -55,6 +58,9 @@ class WithdrawalNotification extends Notification
             'withdrawal_approved' => "Your withdrawal of ₦" . number_format($this->data['amount'] ?? 0) . " has been approved!",
             'withdrawal_completed' => "₦" . number_format($this->data['amount'] ?? 0) . " has been sent to your account.",
             'withdrawal_rejected' => "Your withdrawal was rejected. Balance restored.",
+            'testimonial_approved' => "Your testimonial has been automatically approved by our AI system. Thank you for sharing your experience! Please refresh the page to proceed with withdrawal.",
+            'testimonial_review' => "Thank you for submitting your testimonial! Our team will review it shortly and get back to you soon. Please check back later.",
+            'testimonial_rejected' => "Unfortunately, your testimonial has been rejected. Reason: " . ($this->data['reason'] ?? 'Not specified') . ". Please submit a different testimonial.",
             default => $this->data['message'] ?? '',
         };
     }
@@ -69,6 +75,9 @@ class WithdrawalNotification extends Notification
             'task_completed' => '✓',
             'referral_bonus' => '🎉',
             'rank_upgraded' => '⭐',
+            'testimonial_approved' => '✅',
+            'testimonial_review' => '⏳',
+            'testimonial_rejected' => '❌',
             default => '🔔',
         };
     }

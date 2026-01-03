@@ -96,7 +96,7 @@ class NotificationService
                 'message' => $this->getMessage($type, $data),
                 'action_url' => '/notifications',
                 'action_label' => 'View Notifications',
-                'icon' => $this->getIcon($type),
+                'icon' => $this->getIcon($type, $data),
             ]));
 
             return true;
@@ -116,11 +116,15 @@ class NotificationService
             'task_completed' => 'Task Completed',
             'referral_bonus' => 'Referral Bonus Earned',
             'rank_upgraded' => 'Rank Upgraded',
+            'testimonial_approved' => '✅ Testimonial Approved!',
+            'testimonial_review' => '⏳ Testimonial Under Review',
+            'testimonial_rejected' => '❌ Testimonial Rejected',
+            'burn_rate_alert' => $data['subject'] ?? 'Platform Liquidity Alert',
             default => 'Notification',
         };
     }
 
-    protected function getIcon(string $type): string
+    protected function getIcon(string $type, array $data = []): string
     {
         return match ($type) {
             'withdrawal_requested' => '⏳',
@@ -130,6 +134,16 @@ class NotificationService
             'task_completed' => '✓',
             'referral_bonus' => '🎉',
             'rank_upgraded' => '⭐',
+            'testimonial_approved' => '✅',
+            'testimonial_review' => '⏳',
+            'testimonial_rejected' => '❌',
+            'burn_rate_alert' => match($data['liquidity_status'] ?? 'caution') {
+                'healthy' => '✅',
+                'caution' => '⚠️',
+                'critical' => '🚨',
+                'collapse_imminent' => '☠️',
+                default => '🔥',
+            },
             default => '🔔',
         };
     }
@@ -208,6 +222,10 @@ class NotificationService
             'task_completed' => "Task Completed - ₦" . number_format($data['amount'] ?? 0) . " Earned",
             'referral_bonus' => "Referral Bonus - ₦" . number_format($data['amount'] ?? 0),
             'rank_upgraded' => "Rank Upgraded to " . ($data['rank'] ?? 'Unknown'),
+            'testimonial_approved' => "Testimonial Approved!",
+            'testimonial_review' => "Testimonial Under Review",
+            'testimonial_rejected' => "Testimonial Rejected",
+            'burn_rate_alert' => $data['subject'] ?? 'Platform Liquidity Alert',
             default => "Notification from {$this->settings->app_name}",
         };
     }
@@ -222,6 +240,10 @@ class NotificationService
             'withdrawal_approved' => "Great news! Your withdrawal of ₦" . number_format($data['amount'] ?? 0) . " has been approved. Funds will be sent to your " . ($data['payment_method'] ?? 'bank') . " account shortly.",
             'withdrawal_completed' => "Your withdrawal of ₦" . number_format($data['amount'] ?? 0) . " has been successfully processed. Please check your " . ($data['payment_method'] ?? 'bank') . " account.",
             'withdrawal_rejected' => "Your withdrawal request has been rejected. Reason: " . ($data['reason'] ?? 'Not specified') . ". Your balance has been restored.",
+            'testimonial_approved' => "Your testimonial has been automatically approved by our AI system. Thank you for sharing your experience! Please refresh the page to proceed with withdrawal.",
+            'testimonial_review' => "Thank you for submitting your testimonial! Our team will review it shortly and get back to you soon. Please check back later.",
+            'testimonial_rejected' => "Unfortunately, your testimonial has been rejected. Reason: " . ($data['reason'] ?? 'Not specified') . ". Please submit a different testimonial.",
+            'burn_rate_alert' => $data['message'] ?? "Platform liquidity alert for " . ($data['report_date'] ?? 'today') . ". Burn rate: " . ($data['burn_rate'] ?? 0) . ". Status: " . strtoupper($data['liquidity_status'] ?? 'unknown') . ". Please check the admin dashboard for details.",
             default => $data['message'] ?? "You have a new notification.",
         };
     }

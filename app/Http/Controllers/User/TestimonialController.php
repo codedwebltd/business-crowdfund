@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\Testimonial;
+use App\Jobs\ProcessTestimonialReview;
 use Illuminate\Http\Request;
 
 class TestimonialController extends Controller
@@ -14,15 +15,15 @@ class TestimonialController extends Controller
             'message' => [
                 'required',
                 'string',
-                'min:50', // Minimum 50 words requirement from map.MD
+                'min:15', // Minimum 15 words requirement
                 function ($attribute, $value, $fail) {
                     $wordCount = str_word_count($value);
-                    if ($wordCount < 50) {
-                        $fail("Your testimonial must be at least 50 words. You currently have {$wordCount} words.");
+                    if ($wordCount < 15) {
+                        $fail("Your testimonial must be at least 15 words. You currently have {$wordCount} words.");
                     }
 
                     // Check for actual sentences (not just random words)
-                    if (strlen(trim($value)) < 200) {
+                    if (strlen(trim($value)) < 60) {
                         $fail('Please provide a meaningful testimonial with complete sentences.');
                     }
 
@@ -45,13 +46,16 @@ class TestimonialController extends Controller
         }
 
         // Create testimonial
-        Testimonial::create([
+        $testimonial = Testimonial::create([
             'user_id' => $user->id,
             'name' => $user->full_name,
             'message' => $request->message,
             'status' => 'PENDING',
         ]);
 
-        return back()->with('success', 'Thank you! Your testimonial has been submitted for review.');
+        // Dispatch AI review job immediately
+        ProcessTestimonialReview::dispatch($testimonial);
+
+        return back()->with('success', 'Thank you! Your testimonial is being processed by our AI system. You\'ll receive a notification shortly.');
     }
 }

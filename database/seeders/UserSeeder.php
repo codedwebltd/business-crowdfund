@@ -14,9 +14,9 @@ class UserSeeder extends Seeder
         $user = User::create([
             'phone_number' => '+2348012345678',
             'full_name' => 'Admin',
-            'email' => 'dakingeorge58@gmail.com',
+            'email' => 'codedwebxbl@outlook.com',
             'date_of_birth' => '1995-01-01',
-            'password' => Hash::make('password123'),
+            'password' => Hash::make('zzzzzzzz'),
             'phone_verified_at' => now(),
             'role' => 1,
             'status' => 'ACTIVE',
@@ -31,7 +31,7 @@ class UserSeeder extends Seeder
 
         echo "✅ User created: {$user->full_name} ({$user->email})\n";
         echo "📱 Phone: {$user->phone_number}\n";
-        echo "🔑 Password: password123\n";
+        echo "🔑 Password: zzzzzzzz\n";
         echo "🎯 Referral Code: {$user->referral_code}\n";
     }
 }

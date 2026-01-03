@@ -25,6 +25,17 @@
           <input v-model.number="form.kyc_withdrawal_threshold" type="number" min="0" step="1000" placeholder="50000" class="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm" />
         </div>
 
+        <!-- Enable KYC on First Withdrawal -->
+        <div class="flex items-center justify-between p-4 bg-teal-50 rounded-lg border border-teal-200">
+          <div>
+            <span class="text-sm font-semibold text-gray-900">Require KYC on First Withdrawal</span>
+            <p class="text-xs text-gray-500 mt-1">Force users to complete KYC before their first withdrawal regardless of amount</p>
+          </div>
+          <button type="button" @click="form.enable_kyc_on_first_withdrawal = !form.enable_kyc_on_first_withdrawal" :class="['relative inline-flex h-6 w-11 items-center rounded-full transition-colors', form.enable_kyc_on_first_withdrawal ? 'bg-green-500' : 'bg-gray-300']">
+            <span :class="['inline-block h-4 w-4 transform rounded-full bg-white transition-transform', form.enable_kyc_on_first_withdrawal ? 'translate-x-6' : 'translate-x-1']"></span>
+          </button>
+        </div>
+
         <div>
           <h3 class="text-sm font-bold text-gray-900 mb-3">Document Requirements</h3>
           <div class="space-y-3">
@@ -119,6 +130,7 @@
 import { ref, reactive } from 'vue';
 import { router } from '@inertiajs/vue3';
 import Tooltip from '@/Components/Tooltip.vue';
+import Swal from 'sweetalert2';
 
 const props = defineProps({ settings: Object });
 const emit = defineEmits(['saved']);
@@ -126,6 +138,7 @@ const saving = ref(false);
 
 const form = reactive({
   kyc_withdrawal_threshold: props.settings.kyc_withdrawal_threshold || 50000,
+  enable_kyc_on_first_withdrawal: props.settings.enable_kyc_on_first_withdrawal ?? false,
   kyc_requirements: props.settings.kyc_requirements || {
     nin_required: false,
     bvn_required: false,
@@ -139,8 +152,30 @@ const save = () => {
   saving.value = true;
   router.post('/admin/settings/kyc', form, {
     preserveScroll: true,
-    onSuccess: () => { saving.value = false; emit('saved'); },
-    onError: () => { saving.value = false; }
+    onSuccess: () => {
+      saving.value = false;
+      Swal.fire({
+        icon: 'success',
+        title: 'Settings Saved!',
+        text: 'KYC settings have been updated successfully.',
+        timer: 3000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
+    },
+    onError: () => {
+      saving.value = false;
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: 'Failed to save settings. Please try again.',
+        timer: 3000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
+    }
   });
 };
 </script>

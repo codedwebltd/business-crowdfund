@@ -51,8 +51,14 @@ class WithdrawalController extends Controller
 
         // Check if KYC is required
         $kycRequired = false;
-        $kycThreshold = $settings->kyc_requirements['withdrawal_requirements']['nin']['threshold'] ?? 50000;
-        if ($user->wallet && $user->wallet->withdrawable_balance >= $kycThreshold) {
+        $kycThreshold = $settings->kyc_withdrawal_threshold ?? 50000;
+        $enableKycOnFirstWithdrawal = $settings->enable_kyc_on_first_withdrawal ?? false;
+        $isFirstWithdrawal = $user->withdrawals()->where('status', '!=', 'FAILED')->count() === 0;
+
+        // Require KYC if: (1) First withdrawal and setting enabled, OR (2) Balance >= threshold
+        if ($enableKycOnFirstWithdrawal && $isFirstWithdrawal) {
+            $kycRequired = !$user->latestKyc || $user->latestKyc->status !== 'APPROVED';
+        } elseif ($user->wallet && $user->wallet->withdrawable_balance >= $kycThreshold) {
             $kycRequired = !$user->latestKyc || $user->latestKyc->status !== 'APPROVED';
         }
 
@@ -82,18 +88,44 @@ class WithdrawalController extends Controller
             'withdrawalRate' => $withdrawalRate,
             'bankEnabled' => $settings->payment_gateways['bank_transfer']['enabled'] ?? false,
             'cryptoEnabled' => $settings->payment_gateways['crypto_transfer']['enabled'] ?? true,
+            'twoFactorEnabled' => $user->google2fa_enabled ?? false,
         ]);
     }
 
     public function store(Request $request)
     {
-        $user = auth()->user()->load(['rank', 'wallet']);
+        $user = auth()->user()->load(['rank', 'wallet', 'latestKyc']);
         $settings = GlobalSetting::first();
 
         $validated = $request->validate([
             'amount' => 'required|numeric|min:100',
             'method' => 'required|in:bank,crypto',
+            'two_factor_code' => $user->google2fa_enabled ? 'required|digits:6' : '',
         ]);
+
+        // Verify 2FA if enabled
+        if ($user->google2fa_enabled) {
+            $google2fa = app(\App\Services\Google2FAService::class);
+            if (!$google2fa->verify($user->google2fa_secret, $validated['two_factor_code'])) {
+                return back()->withErrors(['two_factor_code' => 'Invalid 2FA code. Please try again.']);
+            }
+        }
+
+        // Check KYC requirement (server-side enforcement)
+        $kycThreshold = $settings->kyc_withdrawal_threshold ?? 50000;
+        $enableKycOnFirstWithdrawal = $settings->enable_kyc_on_first_withdrawal ?? false;
+        $isFirstWithdrawal = $user->withdrawals()->where('status', '!=', 'FAILED')->count() === 0;
+
+        $kycRequired = false;
+        if ($enableKycOnFirstWithdrawal && $isFirstWithdrawal) {
+            $kycRequired = true;
+        } elseif ($user->wallet && $user->wallet->withdrawable_balance >= $kycThreshold) {
+            $kycRequired = true;
+        }
+
+        if ($kycRequired && (!$user->latestKyc || $user->latestKyc->status !== 'APPROVED')) {
+            return back()->withErrors(['amount' => 'KYC verification is required before you can proceed with this withdrawal. Please complete your KYC verification.']);
+        }
 
         $originalAmount = $validated['amount'];
         $withdrawalRate = $settings->withdrawal_rate ?? 1.0;

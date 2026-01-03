@@ -39,6 +39,9 @@ class Kernel extends ConsoleKernel
 
         // Disburse pending commissions in batches (runs every minute for testing)
         $schedule->command('commissions:disburse')->everyMinute();
+
+        // Calculate daily burn rate for liquidity monitoring (runs daily at midnight)
+        $schedule->command('liquidity:calculate-burn-rate')->dailyAt('00:01');
     }
 
     /**

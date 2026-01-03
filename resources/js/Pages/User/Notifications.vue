@@ -303,20 +303,67 @@ const weekCount = computed(() => {
 const filters = computed(() => [
   { label: 'All', value: 'all', count: props.notifications.length },
   { label: 'Unread', value: 'unread', count: unreadCount.value },
-  { label: 'Tasks', value: 'tasks_assigned', count: props.notifications.filter(n => n.type === 'tasks_assigned').length },
-  { label: 'Earnings', value: 'earnings', count: props.notifications.filter(n => n.type.includes('earning')).length },
-  { label: 'System', value: 'system', count: props.notifications.filter(n => n.type.includes('system')).length },
+  {
+    label: 'Tasks',
+    value: 'tasks',
+    count: props.notifications.filter(n =>
+      n.type === 'task_completed' ||
+      n.type === 'task_assigned' ||
+      n.type === 'tasks_assigned'
+    ).length
+  },
+  {
+    label: 'Earnings',
+    value: 'earnings',
+    count: props.notifications.filter(n =>
+      n.type === 'team_commission' ||
+      n.type === 'referral_bonus' ||
+      n.type === 'task_completed' ||
+      n.type.includes('earning') ||
+      n.type.includes('commission') ||
+      n.type.includes('bonus')
+    ).length
+  },
+  {
+    label: 'System',
+    value: 'system',
+    count: props.notifications.filter(n =>
+      n.type.includes('system') ||
+      n.type.includes('security') ||
+      n.type.includes('kyc') ||
+      n.type.includes('withdrawal') ||
+      n.type.includes('account')
+    ).length
+  },
 ]);
 
 const filteredNotifications = computed(() => {
   if (activeFilter.value === 'all') return props.notifications;
   if (activeFilter.value === 'unread') return props.notifications.filter(n => !n.read_at);
+
+  if (activeFilter.value === 'tasks') return props.notifications.filter(n =>
+    n.type === 'task_completed' ||
+    n.type === 'task_assigned' ||
+    n.type === 'tasks_assigned'
+  );
+
   if (activeFilter.value === 'earnings') return props.notifications.filter(n =>
-    n.type.includes('earning') || n.type.includes('commission') || n.type.includes('withdrawal')
+    n.type === 'team_commission' ||
+    n.type === 'referral_bonus' ||
+    n.type === 'task_completed' ||
+    n.type.includes('earning') ||
+    n.type.includes('commission') ||
+    n.type.includes('bonus')
   );
+
   if (activeFilter.value === 'system') return props.notifications.filter(n =>
-    n.type.includes('system') || n.type.includes('security') || n.type.includes('kyc')
+    n.type.includes('system') ||
+    n.type.includes('security') ||
+    n.type.includes('kyc') ||
+    n.type.includes('withdrawal') ||
+    n.type.includes('account')
   );
+
   return props.notifications.filter(n => n.type === activeFilter.value);
 });
 
