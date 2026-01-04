@@ -268,6 +268,11 @@ Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(
         Route::get('/kyc', [\App\Http\Controllers\Admin\KycController::class, 'index'])->name('admin.kyc');
         Route::post('/kyc/{id}/approve', [\App\Http\Controllers\Admin\KycController::class, 'approve']);
         Route::post('/kyc/{id}/reject', [\App\Http\Controllers\Admin\KycController::class, 'reject']);
+        Route::post('/kyc/{id}/delete-document', [\App\Http\Controllers\Admin\KycController::class, 'deleteDocument']);
+
+        // Documentation
+        Route::get('/documentation', [\App\Http\Controllers\Admin\DocumentationController::class, 'index'])->name('admin.documentation.index');
+        Route::get('/documentation/{slug}', [\App\Http\Controllers\Admin\DocumentationController::class, 'show'])->name('admin.documentation.show');
 
         // Liquidity & Earnings
         Route::get('/liquidity', [\App\Http\Controllers\Admin\LiquidityController::class, 'index'])->name('admin.liquidity.index');
@@ -398,4 +403,13 @@ Route::get('/demo2', function () {
         'logo'      => 'https://dummyimage.com/120x120/7c3aed/ffffff&text=CP',
         'baseCSS'   => $pdfBase->css(),
     ]);
+});
+
+// Admin Command Control Routes
+Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/commands', [App\Http\Controllers\Admin\CommandControlController::class, 'index'])->name('admin.commands');
+    Route::post('/commands/execute', [App\Http\Controllers\Admin\CommandControlController::class, 'execute']);
+    Route::get('/commands/batch/{batchId}', [App\Http\Controllers\Admin\CommandControlController::class, 'getBatchStatus']);
+    Route::post('/commands/retry/{id}', [App\Http\Controllers\Admin\CommandControlController::class, 'retryFailedJob']);
+    Route::post('/commands/clear-failed', [App\Http\Controllers\Admin\CommandControlController::class, 'clearFailedJobs']);
 });

@@ -22,6 +22,8 @@ return new class extends Migration
             $table->timestamp('submitted_at');
             $table->timestamp('reviewed_at')->nullable();
             $table->foreignUuid('reviewed_by')->nullable()->constrained('users')->onUpdate('cascade')->onDelete('set null');
+            $table->boolean('auto_verified')->default(false);
+            $table->json('verification_data')->nullable();
             $table->timestamps();
         });
     }

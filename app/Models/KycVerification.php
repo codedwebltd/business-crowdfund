@@ -13,12 +13,14 @@ class KycVerification extends Model
     protected $fillable = [
         'user_id', 'nin_url', 'utility_bill_url', 'selfie_url',
         'status', 'rejection_reason', 'submitted_at',
-        'reviewed_at', 'reviewed_by'
+        'reviewed_at', 'reviewed_by', 'auto_verified', 'verification_data'
     ];
 
     protected $casts = [
         'submitted_at' => 'datetime',
         'reviewed_at' => 'datetime',
+        'auto_verified' => 'boolean',
+        'verification_data' => 'array',
     ];
 
     // Relationships

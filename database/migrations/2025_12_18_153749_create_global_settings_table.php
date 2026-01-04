@@ -233,6 +233,7 @@ return new class extends Migration
 
             // ==================== KYC SETTINGS ====================
             $table->json('kyc_requirements')->nullable();
+            $table->boolean('enable_kyc_on_first_withdrawal')->default(false);
             /**
              * Structure: {
              *   "basic_registration": {
@@ -266,6 +267,7 @@ return new class extends Migration
 
             // Testimonial & Welcome Settings
             $table->boolean('require_testimonial_first_withdrawal')->default(true);
+            $table->boolean('testimonial_required_for_withdrawal')->default(false);
             $table->decimal('kyc_withdrawal_threshold', 15, 2)->default(50000); // Amount above which KYC is required
             $table->decimal('minimum_withdrawal', 15, 2)->default(5000);
             $table->decimal('maximum_withdrawal', 15, 2)->default(50000);

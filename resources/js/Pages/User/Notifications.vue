@@ -306,33 +306,38 @@ const filters = computed(() => [
   {
     label: 'Tasks',
     value: 'tasks',
+    count: props.notifications.filter(n => n.type === 'task_completed').length
+  },
+  {
+    label: 'Withdrawals',
+    value: 'withdrawals',
     count: props.notifications.filter(n =>
-      n.type === 'task_completed' ||
-      n.type === 'task_assigned' ||
-      n.type === 'tasks_assigned'
+      n.type === 'withdrawal_requested' ||
+      n.type === 'withdrawal_approved' ||
+      n.type === 'withdrawal_completed' ||
+      n.type === 'withdrawal_rejected'
     ).length
   },
   {
     label: 'Earnings',
     value: 'earnings',
     count: props.notifications.filter(n =>
-      n.type === 'team_commission' ||
       n.type === 'referral_bonus' ||
-      n.type === 'task_completed' ||
-      n.type.includes('earning') ||
-      n.type.includes('commission') ||
-      n.type.includes('bonus')
+      n.type === 'rank_upgraded' ||
+      n.type === 'task_completed'
     ).length
   },
   {
     label: 'System',
     value: 'system',
     count: props.notifications.filter(n =>
-      n.type.includes('system') ||
-      n.type.includes('security') ||
-      n.type.includes('kyc') ||
-      n.type.includes('withdrawal') ||
-      n.type.includes('account')
+      n.type === 'testimonial_approved' ||
+      n.type === 'testimonial_review' ||
+      n.type === 'testimonial_rejected' ||
+      n.type === 'kyc_approved' ||
+      n.type === 'kyc_rejected' ||
+      n.type === 'kyc_pending_review' ||
+      n.type === 'burn_rate_alert'
     ).length
   },
 ]);
@@ -341,65 +346,102 @@ const filteredNotifications = computed(() => {
   if (activeFilter.value === 'all') return props.notifications;
   if (activeFilter.value === 'unread') return props.notifications.filter(n => !n.read_at);
 
-  if (activeFilter.value === 'tasks') return props.notifications.filter(n =>
-    n.type === 'task_completed' ||
-    n.type === 'task_assigned' ||
-    n.type === 'tasks_assigned'
-  );
+  if (activeFilter.value === 'tasks') {
+    return props.notifications.filter(n => n.type === 'task_completed');
+  }
 
-  if (activeFilter.value === 'earnings') return props.notifications.filter(n =>
-    n.type === 'team_commission' ||
-    n.type === 'referral_bonus' ||
-    n.type === 'task_completed' ||
-    n.type.includes('earning') ||
-    n.type.includes('commission') ||
-    n.type.includes('bonus')
-  );
+  if (activeFilter.value === 'withdrawals') {
+    return props.notifications.filter(n =>
+      n.type === 'withdrawal_requested' ||
+      n.type === 'withdrawal_approved' ||
+      n.type === 'withdrawal_completed' ||
+      n.type === 'withdrawal_rejected'
+    );
+  }
 
-  if (activeFilter.value === 'system') return props.notifications.filter(n =>
-    n.type.includes('system') ||
-    n.type.includes('security') ||
-    n.type.includes('kyc') ||
-    n.type.includes('withdrawal') ||
-    n.type.includes('account')
-  );
+  if (activeFilter.value === 'earnings') {
+    return props.notifications.filter(n =>
+      n.type === 'referral_bonus' ||
+      n.type === 'rank_upgraded' ||
+      n.type === 'task_completed'
+    );
+  }
+
+  if (activeFilter.value === 'system') {
+    return props.notifications.filter(n =>
+      n.type === 'testimonial_approved' ||
+      n.type === 'testimonial_review' ||
+      n.type === 'testimonial_rejected' ||
+      n.type === 'kyc_approved' ||
+      n.type === 'kyc_rejected' ||
+      n.type === 'kyc_pending_review' ||
+      n.type === 'burn_rate_alert'
+    );
+  }
 
   return props.notifications.filter(n => n.type === activeFilter.value);
 });
 
 const getIconBackground = (type) => {
   const backgrounds = {
-    'tasks_assigned': 'bg-gradient-to-br from-blue-500 to-cyan-500',
     'task_completed': 'bg-gradient-to-br from-green-500 to-emerald-500',
-    'earning_matured': 'bg-gradient-to-br from-yellow-500 to-orange-500',
-    'commission_earned': 'bg-gradient-to-br from-purple-500 to-pink-500',
+    'withdrawal_requested': 'bg-gradient-to-br from-blue-500 to-cyan-500',
     'withdrawal_approved': 'bg-gradient-to-br from-green-500 to-teal-500',
+    'withdrawal_completed': 'bg-gradient-to-br from-green-600 to-teal-600',
     'withdrawal_rejected': 'bg-gradient-to-br from-red-500 to-rose-500',
+    'referral_bonus': 'bg-gradient-to-br from-purple-500 to-pink-500',
     'rank_upgraded': 'bg-gradient-to-br from-amber-500 to-yellow-500',
-    'referral_joined': 'bg-gradient-to-br from-indigo-500 to-purple-500',
-    'system_announcement': 'bg-gradient-to-br from-gray-500 to-slate-500',
+    'testimonial_approved': 'bg-gradient-to-br from-green-500 to-emerald-500',
+    'testimonial_review': 'bg-gradient-to-br from-blue-500 to-cyan-500',
+    'testimonial_rejected': 'bg-gradient-to-br from-red-500 to-rose-500',
+    'kyc_approved': 'bg-gradient-to-br from-green-500 to-emerald-500',
+    'kyc_rejected': 'bg-gradient-to-br from-red-500 to-rose-500',
+    'kyc_pending_review': 'bg-gradient-to-br from-blue-500 to-cyan-500',
+    'burn_rate_alert': 'bg-gradient-to-br from-orange-500 to-red-500',
   };
   return backgrounds[type] || 'bg-gradient-to-br from-purple-500 to-pink-500';
 };
 
 const getIcon = (type) => {
-  const icons = {
-    'tasks_assigned': h('svg', { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' },
-      h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': '2', d: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' })
-    ),
-    'earning_matured': h('svg', { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' },
-      h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': '2', d: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' })
-    ),
-    'commission_earned': h('svg', { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' },
-      h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': '2', d: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' })
-    ),
-    'rank_upgraded': h('svg', { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' },
-      h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': '2', d: 'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z' })
-    ),
-  };
-  return icons[type] || h('svg', { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' },
+  const taskIcon = h('svg', { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' },
+    h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': '2', d: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' })
+  );
+  const moneyIcon = h('svg', { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' },
+    h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': '2', d: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' })
+  );
+  const starIcon = h('svg', { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' },
+    h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': '2', d: 'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z' })
+  );
+  const checkIcon = h('svg', { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' },
+    h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': '2', d: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' })
+  );
+  const clockIcon = h('svg', { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' },
+    h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': '2', d: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' })
+  );
+  const xIcon = h('svg', { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' },
+    h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': '2', d: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z' })
+  );
+  const bellIcon = h('svg', { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' },
     h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': '2', d: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' })
   );
+
+  const icons = {
+    'task_completed': taskIcon,
+    'withdrawal_requested': clockIcon,
+    'withdrawal_approved': checkIcon,
+    'withdrawal_completed': moneyIcon,
+    'withdrawal_rejected': xIcon,
+    'referral_bonus': moneyIcon,
+    'rank_upgraded': starIcon,
+    'testimonial_approved': checkIcon,
+    'testimonial_review': clockIcon,
+    'testimonial_rejected': xIcon,
+    'kyc_approved': checkIcon,
+    'kyc_rejected': xIcon,
+    'kyc_pending_review': clockIcon,
+    'burn_rate_alert': bellIcon,
+  };
+  return icons[type] || bellIcon;
 };
 
 const formatTime = (timestamp) => {

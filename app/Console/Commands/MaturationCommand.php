@@ -2,11 +2,11 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\ProcessBalanceMaturationJob;
 use App\Models\GlobalSetting;
 use App\Models\Transaction;
-use App\Models\Wallet;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Bus;
 
 class MaturationCommand extends Command
 {
@@ -22,78 +22,70 @@ class MaturationCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Transfer matured earnings from PENDING to WITHDRAWABLE balance';
+    protected $description = 'Transfer matured earnings from PENDING to WITHDRAWABLE balance using batch jobs';
 
     /**
      * Execute the console command.
      */
     public function handle()
     {
-        $this->info('Starting earnings maturation process...');
+        $this->info('🚀 Starting earnings maturation process...');
 
         // Get maturation hours from settings (default 72)
         $settings = GlobalSetting::first();
-        $maturationHours = $settings->maturation_hours ?? 72;
+        $maturationHours = $settings->pending_balance_maturation_hours ?? 72;
 
-        // Find all PENDING transactions that have matured (any type)
-        $maturedTransactions = Transaction::where('status', 'PENDING')
+        $this->info("⏰ Maturation threshold: {$maturationHours} hours");
+
+        // Find all PENDING transactions that have matured
+        $maturedTransactionIds = Transaction::where('status', 'PENDING')
             ->where('balance_type', 'PENDING')
             ->where('created_at', '<=', now()->subHours($maturationHours))
-            ->get();
+            ->pluck('id')
+            ->toArray();
 
-        if ($maturedTransactions->isEmpty()) {
-            $this->info('No matured earnings to process.');
+        if (empty($maturedTransactionIds)) {
+            $this->info('✅ No matured earnings to process.');
             return 0;
         }
 
-        $this->info("Found {$maturedTransactions->count()} matured transactions to process.");
+        $totalCount = count($maturedTransactionIds);
+        $this->info("📊 Found {$totalCount} matured transactions to process.");
 
-        $processedCount = 0;
-        $totalAmount = 0;
+        // Chunk transactions into batches (500 per job for optimal performance)
+        $chunkSize = 500;
+        $chunks = array_chunk($maturedTransactionIds, $chunkSize);
+        $jobCount = count($chunks);
 
-        DB::beginTransaction();
-        try {
-            foreach ($maturedTransactions as $transaction) {
-                $wallet = Wallet::where('user_id', $transaction->user_id)->first();
+        $this->info("📦 Creating {$jobCount} batch jobs ({$chunkSize} transactions per job)...");
 
-                if (!$wallet) {
-                    $this->error("Wallet not found for user {$transaction->user_id}");
-                    continue;
-                }
-
-                // Transfer from pending to withdrawable
-                $wallet->decrement('pending_balance', $transaction->amount);
-                $wallet->increment('withdrawable_balance', $transaction->amount);
-
-                // Update transaction status
-                $transaction->update([
-                    'status' => 'COMPLETED',
-                    'balance_type' => 'WITHDRAWABLE',
-                ]);
-
-                $processedCount++;
-                $totalAmount += $transaction->amount;
-
-                $this->info("✓ Matured ₦{$transaction->amount} for user {$transaction->user_id}");
-            }
-
-            DB::commit();
-
-            $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            $this->info("✅ Successfully processed {$processedCount} transactions");
-            $this->info("💰 Total matured: ₦{$totalAmount}");
-            $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-
-            return 0;
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            $this->error("Maturation failed: {$e->getMessage()}");
-            logger()->error("Maturation failed: {$e->getMessage()}", [
-                'exception' => $e,
-                'trace' => $e->getTraceAsString()
-            ]);
-            return 1;
+        // Create jobs array
+        $jobs = [];
+        foreach ($chunks as $chunk) {
+            $jobs[] = new ProcessBalanceMaturationJob($chunk);
         }
+
+        // Dispatch batch jobs
+        $batch = Bus::batch($jobs)
+            ->name('Balance Maturation - ' . now()->format('Y-m-d H:i:s'))
+            ->allowFailures() // Don't cancel entire batch if one job fails
+            ->onQueue('snail') // Use snail queue
+            ->finally(function () {
+                logger()->info('Balance maturation batch completed');
+            })
+            ->dispatch();
+
+        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->info("✅ Batch dispatched successfully!");
+        $this->info("🆔 Batch ID: {$batch->id}");
+        $this->info("📦 Jobs queued: {$jobCount}");
+        $this->info("💼 Total transactions: {$totalCount}");
+        $this->info("🔄 Queue: snail");
+        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->info("📝 Monitor progress: php artisan queue:batches");
+        $this->info("🔍 View batch: php artisan tinker → Bus::findBatch('{$batch->id}')");
+        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+        return 0;
     }
 }

@@ -64,6 +64,7 @@ class GlobalSetting extends Model
 
         // KYC Settings
         'kyc_requirements',
+        'enable_kyc_on_first_withdrawal',
 
         // System Controls
         'maintenance_mode',
@@ -81,6 +82,7 @@ class GlobalSetting extends Model
 
         // Testimonial & Welcome Settings
         'require_testimonial_first_withdrawal',
+        'testimonial_required_for_withdrawal',
         'kyc_withdrawal_threshold',
         'minimum_withdrawal',
         'maximum_withdrawal',
@@ -150,6 +152,8 @@ class GlobalSetting extends Model
         'email_notifications_enabled' => 'boolean',
         'sms_notifications_enabled' => 'boolean',
         'require_testimonial_first_withdrawal' => 'boolean',
+        'testimonial_required_for_withdrawal' => 'boolean',
+        'enable_kyc_on_first_withdrawal' => 'boolean',
         'recaptcha_enabled' => 'boolean',
         'recaptcha_trigger_on_fraud' => 'boolean',
 

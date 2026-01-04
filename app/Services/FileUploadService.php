@@ -28,7 +28,7 @@ class FileUploadService
         ];
     }
 
-    public function uploadFile(UploadedFile $file, string $directory, ?int $userId = null): array
+    public function uploadFile(UploadedFile $file, string $directory, int|string|null $userId = null): array
     {
         Log::info('FileUploadService: Starting upload', [
             'original_name' => $file->getClientOriginalName(),
@@ -188,7 +188,7 @@ class FileUploadService
         return "{$timestamp}_{$random}.{$extension}";
     }
 
-    private function buildFilePath(string $directory, string $fileName, ?int $userId = null): string
+    private function buildFilePath(string $directory, string $fileName, int|string|null $userId = null): string
     {
         $path = trim($directory, '/');
 
@@ -382,7 +382,7 @@ class FileUploadService
         }
     }
 
-public function replaceFile(UploadedFile $newFile, string $directory, ?string $oldFilePath = null, ?int $userId = null): array
+public function replaceFile(UploadedFile $newFile, string $directory, ?string $oldFilePath = null, int|string|null $userId = null): array
 {
     try {
         Log::info('Replace file called', [
@@ -422,7 +422,7 @@ public function replaceFile(UploadedFile $newFile, string $directory, ?string $o
     }
 }
 
-public function uploadBase64Image(string $base64Data, string $directory, ?string $oldFilePath = null, ?int $userId = null): array
+public function uploadBase64Image(string $base64Data, string $directory, ?string $oldFilePath = null, int|string|null $userId = null): array
 {
     try {
         // Extract base64 data

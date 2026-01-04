@@ -144,7 +144,8 @@ class GlobalSettingsController extends Controller
             'kyc_requirements',
             'kyc_withdrawal_threshold',
             'enable_kyc_on_first_withdrawal',
-            'require_testimonial_first_withdrawal'
+            'require_testimonial_first_withdrawal',
+            'testimonial_required_for_withdrawal'
         ]));
         return back();
     }

@@ -38,36 +38,172 @@
 
         <!-- Alerts Section -->
         <div v-if="(testimonialRequired && user.wallet?.withdrawable_balance > 0) || kycRequired || !canWithdrawToday" class="space-y-3">
-          <!-- Testimonial Required -->
-          <div v-if="testimonialRequired && user.wallet?.withdrawable_balance > 0" class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+          <!-- Testimonial Required or Pending -->
+          <div v-if="testimonialRequired && user.wallet?.withdrawable_balance > 0" :class="[
+            'rounded-lg p-4',
+            hasPendingTestimonial
+              ? 'bg-purple-500/10 border border-purple-500/30'
+              : 'bg-yellow-500/10 border border-yellow-500/30'
+          ]">
             <div class="flex items-start gap-3">
-              <svg class="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <!-- Animated Spinner for Pending Testimonial -->
+              <div v-if="hasPendingTestimonial" class="flex-shrink-0 mt-0.5">
+                <div class="relative w-6 h-6">
+                  <svg class="w-6 h-6 text-purple-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+              <!-- Regular icon for not submitted -->
+              <svg v-else class="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
+
               <div class="flex-1">
-                <p class="text-yellow-400 font-semibold mb-1">One-Time Testimonial Required</p>
-                <p class="text-gray-300 text-sm mb-3">We'd love to hear about your experience! Share a quick testimonial to unlock withdrawals. Don't worry—this is just a one-time thing and won't be required for future withdrawals. 😊</p>
-                <button @click="showTestimonialModal = true" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold rounded-lg transition">
-                  Submit Testimonial
-                </button>
+                <!-- Pending Testimonial -->
+                <div v-if="hasPendingTestimonial">
+                  <p class="text-purple-400 font-semibold mb-1 flex items-center gap-2">
+                    <span>Reviewing your testimonial</span>
+                    <span class="inline-flex gap-0.5">
+                      <span class="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                      <span class="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                      <span class="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                    </span>
+                  </p>
+                  <p class="text-gray-300 text-sm mb-2">
+                    Your testimonial is under review. We'll notify you once it's approved!
+                  </p>
+                  <div class="bg-purple-500/20 rounded-lg p-3 border border-purple-500/30">
+                    <p class="text-purple-300 text-xs">
+                      ⏱️ <strong>Estimated review time:</strong> 12-24 hours<br/>
+                      📧 You'll receive a notification once approved
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Not Submitted Yet -->
+                <div v-else>
+                  <p class="text-yellow-400 font-semibold mb-1">One-Time Testimonial Required</p>
+                  <p class="text-gray-300 text-sm mb-3">We'd love to hear about your experience! Share a quick testimonial to unlock withdrawals. Don't worry—this is just a one-time thing and won't be required for future withdrawals. 😊</p>
+                  <button @click="showTestimonialModal = true" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold rounded-lg transition">
+                    Submit Testimonial
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- KYC Required -->
-          <div v-if="kycRequired" class="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+          <!-- KYC Approved Badge -->
+          <div v-if="user.latest_kyc?.status === 'APPROVED'" class="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg p-4">
             <div class="flex items-start gap-3">
-              <svg class="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="relative flex-shrink-0">
+                <!-- Instagram-style verification badge -->
+                <div class="w-14 h-14 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/50">
+                  <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                  </svg>
+                </div>
+                <!-- Pulse animation -->
+                <div class="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-20"></div>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <p class="text-green-400 font-bold text-lg">Verified Account</p>
+                  <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                  </svg>
+                </div>
+                <p class="text-gray-300 text-sm mb-2">
+                  Your identity has been verified. You can now make withdrawals without restrictions.
+                </p>
+                <div class="bg-green-500/20 rounded-lg p-2 border border-green-500/30 inline-block">
+                  <p class="text-green-300 text-xs">
+                    ✓ Verified on {{ new Date(user.kyc_verified_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KYC Required or Pending -->
+          <div v-else-if="kycRequired" :class="[
+            'rounded-lg p-4',
+            user.latest_kyc?.status === 'PENDING'
+              ? 'bg-blue-500/10 border border-blue-500/30'
+              : user.latest_kyc?.status === 'REJECTED'
+              ? 'bg-orange-500/10 border border-orange-500/30'
+              : 'bg-red-500/10 border border-red-500/30'
+          ]">
+            <div class="flex items-start gap-3">
+              <!-- Animated Spinner for Pending KYC -->
+              <div v-if="user.latest_kyc?.status === 'PENDING'" class="flex-shrink-0 mt-0.5">
+                <div class="relative w-6 h-6">
+                  <!-- Spinning outer ring -->
+                  <svg class="w-6 h-6 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <!-- Pulsing inner circle -->
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+              <!-- Regular icon for not submitted -->
+              <svg v-else class="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
+
               <div class="flex-1">
-                <p class="text-red-400 font-semibold mb-1">KYC Verification Required</p>
-                <p class="text-gray-300 text-sm mb-3">
-                  {{ settings.enable_kyc_on_first_withdrawal ? 'KYC verification is required for your first withdrawal.' : `For withdrawals above ${formatMoney(settings.kyc_withdrawal_threshold)}, you need to complete KYC verification.` }}
-                </p>
-                <button @click="showKycModal = true" class="inline-block px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition">
-                  Complete KYC Verification
-                </button>
+                <!-- Pending KYC Message -->
+                <div v-if="user.latest_kyc?.status === 'PENDING'">
+                  <p class="text-blue-400 font-semibold mb-1 flex items-center gap-2">
+                    <span>Verifying your KYC</span>
+                    <span class="inline-flex gap-0.5">
+                      <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                      <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                      <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                    </span>
+                  </p>
+                  <p class="text-gray-300 text-sm mb-2">
+                    Automatic approval is taking some time due to massive approval list surge. We will ensure your request is processed shortly.
+                  </p>
+                  <div class="bg-blue-500/20 rounded-lg p-3 border border-blue-500/30">
+                    <p class="text-blue-300 text-xs">
+                      ⏱️ <strong>Estimated processing time:</strong> 24-48 hours<br/>
+                      📧 You'll receive an email notification once verified
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Rejected KYC - Resubmit -->
+                <div v-else-if="user.latest_kyc?.status === 'REJECTED'">
+                  <p class="text-red-400 font-semibold mb-1">KYC Verification Rejected</p>
+                  <p class="text-gray-300 text-sm mb-2">
+                    {{ user.latest_kyc.rejection_reason || 'Your KYC was rejected. Please resubmit with correct documents.' }}
+                  </p>
+                  <button @click="showKycModal = true" class="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Resubmit KYC
+                  </button>
+                </div>
+
+                <!-- Not Submitted Yet -->
+                <div v-else>
+                  <p class="text-red-400 font-semibold mb-1">KYC Verification Required</p>
+                  <p class="text-gray-300 text-sm mb-3">
+                    {{ settings.enable_kyc_on_first_withdrawal ? 'KYC verification is required for your first withdrawal.' : `For withdrawals above ${formatMoney(settings.kyc_withdrawal_threshold)}, you need to complete KYC verification.` }}
+                  </p>
+                  <button @click="showKycModal = true" class="inline-block px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition">
+                    Complete KYC Verification
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -377,6 +513,7 @@
         nin: user.nin,
         bvn: user.bvn
       }"
+      :existing-kyc="user.latest_kyc"
       @close="showKycModal = false"
       @submitted="handleKycSubmitted"
     />
@@ -419,6 +556,11 @@ const withdrawalForm = ref({
 
 const testimonialForm = ref({
   message: '',
+});
+
+// Check if user has pending testimonial
+const hasPendingTestimonial = computed(() => {
+  return props.user.testimonials?.some(t => t.status === 'PENDING') || false;
 });
 
 // Preset amounts based on limits

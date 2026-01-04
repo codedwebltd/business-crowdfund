@@ -7,22 +7,46 @@
     ]" class="mb-4"/>
 
     <!-- Status Banner Card -->
-    <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-5 mb-6">
-      <div class="flex items-center gap-4">
-        <div class="text-5xl">{{ stats.liquidity_status === 'healthy' ? '✅' : stats.liquidity_status === 'caution' ? '⚠️' : stats.liquidity_status === 'critical' ? '🚨' : '☠️' }}</div>
-        <div class="flex-1">
-          <h3 class="text-xl font-bold" :class="{
-            'text-green-600': stats.liquidity_status === 'healthy',
-            'text-yellow-600': stats.liquidity_status === 'caution',
-            'text-orange-600': stats.liquidity_status === 'critical',
-            'text-red-600': stats.liquidity_status === 'collapse_imminent'
-          }">{{ stats.liquidity_status.toUpperCase().replace('_', ' ') }}</h3>
-          <p class="text-sm text-gray-600 mt-1">{{ getStatusMessage(stats.liquidity_status) }}</p>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+      <!-- Liquidity Status -->
+      <div class="lg:col-span-2 rounded-2xl shadow-lg overflow-hidden" :class="{
+        'bg-gradient-to-br from-green-500 to-emerald-600': stats.liquidity_status === 'healthy',
+        'bg-gradient-to-br from-yellow-500 to-orange-500': stats.liquidity_status === 'caution',
+        'bg-gradient-to-br from-orange-500 to-red-500': stats.liquidity_status === 'critical',
+        'bg-gradient-to-br from-red-600 to-rose-800': stats.liquidity_status === 'collapse_imminent'
+      }">
+        <div class="p-6 text-white">
+          <div class="flex items-start gap-4">
+            <div class="text-6xl opacity-90">{{ stats.liquidity_status === 'healthy' ? '✅' : stats.liquidity_status === 'caution' ? '⚠️' : stats.liquidity_status === 'critical' ? '🚨' : '☠️' }}</div>
+            <div class="flex-1">
+              <p class="text-sm font-semibold opacity-90 mb-1">Platform Status</p>
+              <h3 class="text-3xl font-bold mb-2">{{ stats.liquidity_status.toUpperCase().replace('_', ' ') }}</h3>
+              <p class="text-sm leading-relaxed opacity-95">{{ getStatusMessage(stats.liquidity_status) }}</p>
+            </div>
+          </div>
         </div>
-        <div class="text-right">
-          <p class="text-xs text-gray-500">Total Users</p>
-          <p class="text-2xl font-bold text-purple-600">{{ stats.total_users.toLocaleString() }}</p>
-          <p class="text-xs text-green-600 mt-1">{{ stats.active_users.toLocaleString() }} active</p>
+      </div>
+
+      <!-- User Stats Card -->
+      <div class="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl shadow-lg overflow-hidden">
+        <div class="p-6 text-white">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="bg-white/20 rounded-full p-3 backdrop-blur-sm">
+              <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+              </svg>
+            </div>
+            <div>
+              <p class="text-purple-100 text-sm font-semibold">Total Users</p>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <p class="text-5xl font-bold tracking-tight">{{ stats.total_users.toLocaleString() }}</p>
+            <div class="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2 backdrop-blur-sm">
+              <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <p class="text-sm font-semibold text-green-100">{{ stats.active_users.toLocaleString() }} Active Users</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

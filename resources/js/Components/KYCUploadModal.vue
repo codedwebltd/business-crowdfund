@@ -177,12 +177,15 @@
                       </div>
                     </div>
                     <div class="flex-1 min-w-0">
-                      <p class="text-white font-medium text-sm truncate">{{ fileObjects.nin?.name }}</p>
+                      <p class="text-white font-medium text-sm truncate">
+                        {{ fileObjects.nin?.name || 'NIN Document' }}
+                        <span v-if="!fileObjects.nin && filePreviews.nin" class="text-blue-400 text-xs ml-1">(Existing)</span>
+                      </p>
                       <p class="text-green-400 text-xs flex items-center gap-1 mt-1">
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                         </svg>
-                        Ready to upload
+                        {{ fileObjects.nin ? 'Ready to upload' : 'Previously uploaded - Click X to replace' }}
                       </p>
                     </div>
                     <button
@@ -246,12 +249,15 @@
                       </div>
                     </div>
                     <div class="flex-1 min-w-0">
-                      <p class="text-white font-medium text-sm truncate">{{ fileObjects.utility_bill?.name }}</p>
+                      <p class="text-white font-medium text-sm truncate">
+                        {{ fileObjects.utility_bill?.name || 'Utility Bill' }}
+                        <span v-if="!fileObjects.utility_bill && filePreviews.utility_bill" class="text-blue-400 text-xs ml-1">(Existing)</span>
+                      </p>
                       <p class="text-green-400 text-xs flex items-center gap-1 mt-1">
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                         </svg>
-                        Ready to upload
+                        {{ fileObjects.utility_bill ? 'Ready to upload' : 'Previously uploaded - Click X to replace' }}
                       </p>
                     </div>
                     <button
@@ -287,6 +293,7 @@
                   ref="selfieInput"
                   @change="handleFileSelect($event, 'selfie')"
                   accept="image/*"
+                  capture="user"
                   class="hidden"
                 />
                 <button
@@ -298,8 +305,8 @@
                   <svg class="w-12 h-12 text-gray-400 mx-auto mb-2 group-hover:text-teal-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
-                  <p class="text-gray-300 text-sm font-medium">Click to select selfie</p>
-                  <p class="text-gray-500 text-xs mt-1">JPG or PNG (Max 10MB)</p>
+                  <p class="text-gray-300 text-sm font-medium">📸 Take selfie or select from gallery</p>
+                  <p class="text-gray-500 text-xs mt-1">JPG or PNG (Max 10MB) • Camera opens on mobile</p>
                 </button>
               </div>
 
@@ -311,12 +318,15 @@
                       <img :src="filePreviews.selfie" alt="Selfie Preview" class="w-20 h-20 object-cover rounded-lg" />
                     </div>
                     <div class="flex-1 min-w-0">
-                      <p class="text-white font-medium text-sm truncate">{{ fileObjects.selfie?.name }}</p>
+                      <p class="text-white font-medium text-sm truncate">
+                        {{ fileObjects.selfie?.name || 'Selfie with ID' }}
+                        <span v-if="!fileObjects.selfie && filePreviews.selfie" class="text-blue-400 text-xs ml-1">(Existing)</span>
+                      </p>
                       <p class="text-green-400 text-xs flex items-center gap-1 mt-1">
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                         </svg>
-                        Ready to upload
+                        {{ fileObjects.selfie ? 'Ready to upload' : 'Previously uploaded - Click X to replace' }}
                       </p>
                     </div>
                     <button
@@ -354,7 +364,7 @@
           <!-- Upload Progress -->
           <div v-if="submitting && uploadProgress > 0" class="bg-white/5 rounded-xl p-4 border border-white/10">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-white text-sm font-semibold">Uploading files to Backblaze...</span>
+              <span class="text-white text-sm font-semibold">Uploading to server...</span>
               <span class="text-orange-400 text-sm font-bold">{{ uploadProgress }}%</span>
             </div>
             <div class="w-full bg-white/10 rounded-full h-2.5">
@@ -393,7 +403,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -419,6 +429,10 @@ const props = defineProps({
       nin: null,
       bvn: null
     })
+  },
+  existingKyc: {
+    type: Object,
+    default: null
   }
 });
 
@@ -456,6 +470,29 @@ const errors = ref({});
 const submitting = ref(false);
 const uploadProgress = ref(0);
 
+// Initialize with existing KYC data if resubmitting
+watch(() => props.show, (newVal) => {
+  if (newVal && props.existingKyc) {
+    // Set existing URLs as previews
+    if (props.existingKyc.nin_url) {
+      filePreviews.value.nin = props.existingKyc.nin_url;
+    }
+    if (props.existingKyc.utility_bill_url) {
+      filePreviews.value.utility_bill = props.existingKyc.utility_bill_url;
+    }
+    if (props.existingKyc.selfie_url) {
+      filePreviews.value.selfie = props.existingKyc.selfie_url;
+    }
+  } else if (!newVal) {
+    // Reset when modal closes
+    filePreviews.value = {
+      nin: null,
+      utility_bill: null,
+      selfie: null
+    };
+  }
+});
+
 const canSubmit = computed(() => {
   // Check basic info
   if (!props.userInfo.date_of_birth && !form.value.date_of_birth) return false;
@@ -463,7 +500,8 @@ const canSubmit = computed(() => {
   // Check NIN
   if (props.kycRequirements.nin_required) {
     if (!form.value.nin || form.value.nin.length !== 11) return false;
-    if (!fileObjects.value.nin) return false;
+    // Allow existing file OR new file
+    if (!fileObjects.value.nin && !filePreviews.value.nin) return false;
   }
 
   // Check BVN
@@ -471,9 +509,9 @@ const canSubmit = computed(() => {
     if (!form.value.bvn || form.value.bvn.length !== 11) return false;
   }
 
-  // Check documents
-  if (props.kycRequirements.utility_bill_required && !fileObjects.value.utility_bill) return false;
-  if (props.kycRequirements.selfie_required && !fileObjects.value.selfie) return false;
+  // Check documents - allow existing OR new files
+  if (props.kycRequirements.utility_bill_required && !fileObjects.value.utility_bill && !filePreviews.value.utility_bill) return false;
+  if (props.kycRequirements.selfie_required && !fileObjects.value.selfie && !filePreviews.value.selfie) return false;
 
   return true;
 });
@@ -551,10 +589,12 @@ const submitKYC = async () => {
       formData.append('file', file);
       formData.append('type', type);
 
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
       const response = await fetch('/api/kyc/upload', {
         method: 'POST',
         headers: {
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+          'X-CSRF-TOKEN': csrfToken,
           'Accept': 'application/json'
         },
         body: formData

@@ -9,3 +9,7 @@ Stack trace:
 Stack trace:
 #0 {main}
   thrown in /home/qiviotalk/business.qiviotalk.online/test-user-wallet.php on line 3
+[04-Jan-2026 16:08:59 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function opcache_reset() in Command line code:1
+Stack trace:
+#0 {main}
+  thrown in Command line code on line 1

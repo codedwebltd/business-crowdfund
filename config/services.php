@@ -47,4 +47,19 @@ return [
         'key' => env('IPQUALITYSCORE_API_KEY'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Google Cloud Services
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for Google Cloud Vision API for KYC auto-verification
+    |
+    */
+
+    'google' => [
+        'cloud_key_file' => env('GOOGLE_CLOUD_KEY_FILE'),
+        'project_id' => env('GOOGLE_CLOUD_PROJECT_ID'),
+        'enable_kyc_auto_verification' => env('ENABLE_KYC_AUTO_VERIFICATION', false),
+    ],
+
 ];

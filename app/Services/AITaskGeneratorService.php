@@ -119,7 +119,7 @@ class AITaskGeneratorService
     /**
      * Generate survey tasks using AI
      */
-    protected function generateSurveys($country, $count)
+    public function generateSurveys($country, $count)
     {
         $generated = 0;
 
@@ -161,7 +161,7 @@ class AITaskGeneratorService
     /**
      * Generate video watch tasks using YouTube API
      */
-    protected function generateVideoTasks($countryCode, $count)
+    public function generateVideoTasks($countryCode, $count)
     {
         $generated = 0;
 
@@ -216,7 +216,7 @@ class AITaskGeneratorService
     /**
      * Generate sync tasks (template-based)
      */
-    protected function generateSyncTasks($count)
+    public function generateSyncTasks($count)
     {
         $generated = 0;
 
@@ -260,7 +260,7 @@ class AITaskGeneratorService
     /**
      * Generate product review tasks using AI
      */
-    protected function generateProductReviews($country, $count)
+    public function generateProductReviews($country, $count)
     {
         $generated = 0;
 

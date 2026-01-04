@@ -10,6 +10,7 @@ use App\Models\GlobalSetting;
 use App\Models\User;
 use App\Models\Withdrawal;
 use App\Models\Plan;
+use App\Models\Transaction;
 use App\Observers\GlobalSettingObserver;
 use App\Observers\UserObserver;
 use App\Observers\WithdrawalObserver;
@@ -35,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
             'Plan' => Plan::class,
             'Withdrawal' => Withdrawal::class,
             'User' => User::class,
+            'Transaction' => Transaction::class,
         ]);
 
         // Load global settings and share with all views

@@ -10,6 +10,7 @@
         "barryvdh/laravel-dompdf": "^3.1",
         "beyondcode/laravel-websockets": "^1.14",
         "geoip2/geoip2": "*",
+        "google/cloud-vision": "^2.1",
         "guzzlehttp/guzzle": "^7.2",
         "inertiajs/inertia-laravel": "^2.0",
         "jenssegers/agent": "^2.6",

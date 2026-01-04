@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\VerifyKycDocuments;
 use App\Models\GlobalSetting;
 use App\Models\KycVerification;
 use App\Services\FileUploadService;
@@ -137,7 +138,18 @@ class KycController extends Controller
             $existingKyc = $user->latestKyc;
 
             if ($existingKyc && in_array($existingKyc->status, ['PENDING', 'REJECTED'])) {
-                // Update existing
+                // Delete old files from Backblaze if they're being replaced
+                if (isset($validated['nin_url']) && $existingKyc->nin_url && $existingKyc->nin_url !== $validated['nin_url']) {
+                    $this->fileUploadService->deleteFile($existingKyc->nin_url);
+                }
+                if (isset($validated['utility_bill_url']) && $existingKyc->utility_bill_url && $existingKyc->utility_bill_url !== $validated['utility_bill_url']) {
+                    $this->fileUploadService->deleteFile($existingKyc->utility_bill_url);
+                }
+                if (isset($validated['selfie_url']) && $existingKyc->selfie_url && $existingKyc->selfie_url !== $validated['selfie_url']) {
+                    $this->fileUploadService->deleteFile($existingKyc->selfie_url);
+                }
+
+                // Update existing record
                 $existingKyc->update($kycData);
                 $kyc = $existingKyc;
             } else {
@@ -145,7 +157,10 @@ class KycController extends Controller
                 $kyc = KycVerification::create($kycData);
             }
 
-            return back()->with('success', 'KYC verification submitted successfully! We will review your documents within 24-48 hours.');
+            // Dispatch job for background auto-verification
+            VerifyKycDocuments::dispatch($kyc);
+
+            return back()->with('success', 'KYC verification submitted successfully! We are processing your documents and will notify you shortly.');
 
         } catch (\Exception $e) {
             \Log::error('KYC submission failed', [

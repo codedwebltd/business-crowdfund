@@ -228,13 +228,21 @@
                 <div class="flex-1">
                   <p class="text-sm font-bold text-orange-900">National Identification Number (NIN)</p>
                   <p class="text-xs text-orange-700 mt-1">{{ viewingKyc.user?.nin || 'Number not provided' }}</p>
-                  <a :href="viewingKyc.nin_url" target="_blank" class="inline-flex items-center gap-1 mt-2 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
-                    View Document
-                  </a>
+                  <div class="flex gap-2 mt-2">
+                    <button @click="previewDocument(viewingKyc.nin_url, 'NIN Document')" class="inline-flex items-center gap-1 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                      </svg>
+                      View
+                    </button>
+                    <button @click="deleteDocument(viewingKyc.id, 'nin')" class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -250,13 +258,21 @@
                 <div class="flex-1">
                   <p class="text-sm font-bold text-purple-900">Utility Bill</p>
                   <p class="text-xs text-purple-700 mt-1">Proof of address document</p>
-                  <a :href="viewingKyc.utility_bill_url" target="_blank" class="inline-flex items-center gap-1 mt-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
-                    View Document
-                  </a>
+                  <div class="flex gap-2 mt-2">
+                    <button @click="previewDocument(viewingKyc.utility_bill_url, 'Utility Bill')" class="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg transition">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                      </svg>
+                      View
+                    </button>
+                    <button @click="deleteDocument(viewingKyc.id, 'utility_bill')" class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -273,13 +289,21 @@
                 <div class="flex-1">
                   <p class="text-sm font-bold text-teal-900">Selfie with ID</p>
                   <p class="text-xs text-teal-700 mt-1">User holding identification document</p>
-                  <a :href="viewingKyc.selfie_url" target="_blank" class="inline-flex items-center gap-1 mt-2 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-lg transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
-                    View Photo
-                  </a>
+                  <div class="flex gap-2 mt-2">
+                    <button @click="previewDocument(viewingKyc.selfie_url, 'Selfie with ID')" class="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-lg transition">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                      </svg>
+                      View
+                    </button>
+                    <button @click="deleteDocument(viewingKyc.id, 'selfie')" class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -344,6 +368,44 @@
         </div>
       </div>
     </div>
+
+    <!-- Document Preview Modal -->
+    <div v-if="previewDoc.show" @click="closePreview" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+      <div @click.stop class="relative max-w-6xl w-full h-[90vh] bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden flex flex-col">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-4 bg-gray-900 border-b border-gray-700">
+          <h3 class="text-lg font-bold text-white">{{ previewDoc.title }}</h3>
+          <button @click="closePreview" class="p-2 hover:bg-gray-700 rounded-lg transition">
+            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-auto bg-gray-900 flex items-center justify-center">
+          <!-- Image Preview -->
+          <img v-if="previewDoc.isImage" :src="previewDoc.url" :alt="previewDoc.title" class="max-w-full max-h-full object-contain" />
+
+          <!-- PDF Preview -->
+          <iframe v-else-if="previewDoc.isPdf" :src="previewDoc.url" class="w-full h-full border-0"></iframe>
+
+          <!-- Unsupported Format -->
+          <div v-else class="text-center p-8">
+            <svg class="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+            </svg>
+            <p class="text-gray-400 mb-4">Cannot preview this file type</p>
+            <a :href="previewDoc.url" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+              </svg>
+              Download File
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
   </AdminLayout>
 </template>
 
@@ -363,6 +425,13 @@ const props = defineProps({
 const statusFilter = ref('PENDING');
 const searchQuery = ref('');
 const viewingKyc = ref(null);
+const previewDoc = ref({
+  show: false,
+  url: '',
+  title: '',
+  isImage: false,
+  isPdf: false
+});
 
 const filteredKyc = computed(() => {
   let filtered = props.kycVerifications.filter(k => k.status === statusFilter.value);
@@ -453,5 +522,69 @@ const rejectKyc = (id) => {
       });
     }
   });
+};
+
+const deleteDocument = (kycId, docType) => {
+  const docNames = {
+    nin: 'NIN Document',
+    utility_bill: 'Utility Bill',
+    selfie: 'Selfie Photo'
+  };
+
+  Swal.fire({
+    title: `Delete ${docNames[docType]}?`,
+    text: 'This will permanently delete the file from storage. This action cannot be undone!',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Yes, delete it',
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      router.post(`/admin/kyc/${kycId}/delete-document`, { document_type: docType }, {
+        preserveScroll: true,
+        onSuccess: () => {
+          Swal.fire({
+            icon: 'success',
+            title: 'Document Deleted',
+            text: 'The file has been removed from storage.',
+            confirmButtonColor: '#10b981'
+          });
+        },
+        onError: () => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Delete Failed',
+            text: 'Could not delete the document. Please try again.',
+            confirmButtonColor: '#ef4444'
+          });
+        }
+      });
+    }
+  });
+};
+
+const previewDocument = (url, title) => {
+  const fileExt = url.split('.').pop().toLowerCase();
+  const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+  const pdfExts = ['pdf'];
+
+  previewDoc.value = {
+    show: true,
+    url: url,
+    title: title,
+    isImage: imageExts.includes(fileExt),
+    isPdf: pdfExts.includes(fileExt)
+  };
+};
+
+const closePreview = () => {
+  previewDoc.value = {
+    show: false,
+    url: '',
+    title: '',
+    isImage: false,
+    isPdf: false
+  };
 };
 </script>

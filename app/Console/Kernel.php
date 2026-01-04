@@ -18,11 +18,11 @@ class Kernel extends ConsoleKernel
         // Cleanup soft-deleted accounts after 30 days (runs daily at 2 AM)
         $schedule->command('cleanup:soft-deletes')->dailyAt('02:00');
 
+        // Cleanup and regenerate tasks nightly (runs at 3 AM daily - fresh tasks for the day)
+        $schedule->job(new \App\Jobs\CleanupAndRegenerateTasksJob)->dailyAt('03:00');
+
         // Assign daily tasks to all active users (runs at 12:01 AM daily)
         $schedule->command('tasks:assign-daily')->dailyAt('00:01');
-
-        // Generate AI task templates weekly (runs every Sunday at 3 AM)
-        $schedule->command('tasks:generate-templates')->weekly()->sundays()->at('03:00');
 
         // Reset weekly task counters (every Monday at midnight)
         $schedule->call(function () {
