@@ -110,6 +110,7 @@ class NotificationService
     {
         return match ($type) {
             'withdrawal_requested' => 'Withdrawal Request Received',
+            'withdrawal_processing' => 'Withdrawal Being Processed',
             'withdrawal_approved' => 'Withdrawal Approved',
             'withdrawal_completed' => 'Withdrawal Completed',
             'withdrawal_rejected' => 'Withdrawal Rejected',
@@ -132,6 +133,7 @@ class NotificationService
     {
         return match ($type) {
             'withdrawal_requested' => '⏳',
+            'withdrawal_processing' => '🔄',
             'withdrawal_approved' => '✅',
             'withdrawal_completed' => '💰',
             'withdrawal_rejected' => '❌',
@@ -224,6 +226,7 @@ class NotificationService
     {
         return match ($type) {
             'withdrawal_requested' => "Withdrawal Request Received - ₦" . number_format($data['amount'] ?? 0),
+            'withdrawal_processing' => "Withdrawal Being Processed - ₦" . number_format($data['amount'] ?? 0),
             'withdrawal_approved' => "Withdrawal Approved - ₦" . number_format($data['amount'] ?? 0),
             'withdrawal_completed' => "Withdrawal Completed - ₦" . number_format($data['amount'] ?? 0),
             'withdrawal_rejected' => "Withdrawal Rejected",
@@ -249,6 +252,7 @@ class NotificationService
     {
         return match ($type) {
             'withdrawal_requested' => "Your withdrawal request for ₦" . number_format($data['amount'] ?? 0) . " has been received and is being processed. You will receive payment within " . ($this->settings->withdrawal_processing_times[$data['rank'] ?? 'bronze'] ?? '48-72 hours') . ".",
+            'withdrawal_processing' => "Your withdrawal of ₦" . number_format($data['amount'] ?? 0) . " is now being actively processed by our team. Payment will be sent shortly.",
             'withdrawal_approved' => "Great news! Your withdrawal of ₦" . number_format($data['amount'] ?? 0) . " has been approved. Funds will be sent to your " . ($data['payment_method'] ?? 'bank') . " account shortly.",
             'withdrawal_completed' => "Your withdrawal of ₦" . number_format($data['amount'] ?? 0) . " has been successfully processed. Please check your " . ($data['payment_method'] ?? 'bank') . " account.",
             'withdrawal_rejected' => "Your withdrawal request has been rejected. Reason: " . ($data['reason'] ?? 'Not specified') . ". Your balance has been restored.",

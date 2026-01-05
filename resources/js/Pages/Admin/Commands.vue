@@ -6,41 +6,50 @@
     ]" class="mb-4"/>
 
     <!-- Quick Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
-      <div class="bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl shadow-lg p-6 text-white">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="bg-white/20 rounded-full p-3">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-5 hover:shadow-lg transition-all">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Pending Jobs</p>
+            <p class="text-3xl font-bold text-gray-900 mt-1">{{ pendingJobs }}</p>
+            <p class="text-xs text-blue-600 mt-1">In queue</p>
+          </div>
+          <div class="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
           </div>
-          <p class="text-blue-100 text-sm font-semibold">Pending Jobs</p>
         </div>
-        <p class="text-4xl font-bold">{{ pendingJobs }}</p>
       </div>
 
-      <div class="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl shadow-lg p-6 text-white">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="bg-white/20 rounded-full p-3">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-5 hover:shadow-lg transition-all">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Active Batches</p>
+            <p class="text-3xl font-bold text-gray-900 mt-1">{{ batches.filter(b => !b.finished_at).length }}</p>
+            <p class="text-xs text-purple-600 mt-1">Running now</p>
+          </div>
+          <div class="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
             </svg>
           </div>
-          <p class="text-purple-100 text-sm font-semibold">Active Batches</p>
         </div>
-        <p class="text-4xl font-bold">{{ batches.filter(b => !b.finished_at).length }}</p>
       </div>
 
-      <div class="bg-gradient-to-br from-red-600 to-rose-600 rounded-2xl shadow-lg p-6 text-white">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="bg-white/20 rounded-full p-3">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-5 hover:shadow-lg transition-all">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Failed Jobs</p>
+            <p class="text-3xl font-bold text-gray-900 mt-1">{{ failedJobs.length }}</p>
+            <p class="text-xs text-red-600 mt-1">Need attention</p>
+          </div>
+          <div class="p-3 bg-gradient-to-br from-red-500 to-red-600 rounded-xl">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
           </div>
-          <p class="text-red-100 text-sm font-semibold">Failed Jobs</p>
         </div>
-        <p class="text-4xl font-bold">{{ failedJobs.length }}</p>
       </div>
     </div>
 
@@ -99,9 +108,19 @@
 
     <!-- Batch Jobs -->
     <div class="bg-white rounded-2xl shadow-md border border-gray-100 mb-6">
-      <div class="p-6 border-b bg-gradient-to-r from-purple-500 to-pink-600">
-        <h2 class="text-lg font-bold text-white">Batch Jobs</h2>
-        <p class="text-purple-100 text-sm mt-1">Monitor batch job progress</p>
+      <div class="p-6 border-b bg-gradient-to-r from-purple-500 to-pink-600 flex justify-between items-center">
+        <div>
+          <h2 class="text-lg font-bold text-white">Batch Jobs</h2>
+          <p class="text-purple-100 text-sm mt-1">Monitor batch job progress</p>
+        </div>
+        <div class="flex gap-2">
+          <button @click="refreshBatches" class="px-4 py-2 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-all text-sm">
+            🔄 Refresh
+          </button>
+          <button @click="clearAllBatches" :disabled="batches.length === 0" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 transition-all text-sm">
+            🗑️ Clear All
+          </button>
+        </div>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full">
@@ -149,11 +168,39 @@
       </div>
     </div>
 
+    <!-- Laravel Log -->
+    <div class="bg-white rounded-2xl shadow-md border border-gray-100 mb-6">
+      <div class="p-6 border-b bg-gradient-to-r from-gray-700 to-gray-900 flex justify-between items-center">
+        <div>
+          <h2 class="text-lg font-bold text-white">Laravel Log</h2>
+          <p class="text-gray-300 text-sm mt-1">{{ logSize || 'Monitor application logs' }}</p>
+        </div>
+        <div class="flex gap-2">
+          <button @click="refreshLog" :disabled="loadingLog" class="px-4 py-2 bg-white text-gray-700 rounded-lg font-semibold hover:bg-gray-100 disabled:opacity-50 transition-all text-sm">
+            <span v-if="!loadingLog">🔄 Refresh</span>
+            <span v-else>...</span>
+          </button>
+          <button @click="clearLog" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all text-sm">
+            🗑️ Clear Log
+          </button>
+        </div>
+      </div>
+      <div class="p-4">
+        <pre v-if="logContent" class="bg-gray-900 text-green-300 p-4 rounded-xl text-xs overflow-x-auto max-h-96 font-mono">{{ logContent }}</pre>
+        <p v-else class="text-center text-gray-500 py-8">Click refresh to load logs</p>
+      </div>
+    </div>
+
     <!-- Failed Jobs -->
     <div v-if="failedJobs.length > 0" class="bg-white rounded-2xl shadow-md border border-gray-100">
-      <div class="p-6 border-b bg-gradient-to-r from-red-500 to-rose-600">
-        <h2 class="text-lg font-bold text-white">Failed Jobs</h2>
-        <p class="text-red-100 text-sm mt-1">Jobs that failed to execute</p>
+      <div class="p-6 border-b bg-gradient-to-r from-red-500 to-rose-600 flex justify-between items-center">
+        <div>
+          <h2 class="text-lg font-bold text-white">Failed Jobs</h2>
+          <p class="text-red-100 text-sm mt-1">Jobs that failed to execute</p>
+        </div>
+        <button @click="router.reload({ only: ['failedJobs'] })" class="px-4 py-2 bg-white text-red-600 rounded-lg font-semibold hover:bg-red-50 transition-all text-sm">
+          🔄 Refresh
+        </button>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full">
@@ -226,6 +273,9 @@ const commandOutput = ref('');
 const lastCommand = ref('');
 const showGenerateTasksModal = ref(false);
 const forceGenerate = ref(false);
+const logContent = ref('');
+const logSize = ref('');
+const loadingLog = ref(false);
 
 const executeCommand = async (command, args = {}) => {
   executing.value = true;
@@ -330,4 +380,89 @@ const clearAllFailedJobs = async () => {
 };
 
 const formatDate = (date) => new Date(date * 1000).toLocaleString();
+
+const refreshLog = async () => {
+  loadingLog.value = true;
+  try {
+    const response = await fetch('/admin/commands/laravel-log', {
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+      },
+    });
+    const data = await response.json();
+    if (data.success) {
+      logContent.value = data.content;
+      logSize.value = data.size_readable;
+    }
+  } catch (error) {
+    Swal.fire({ icon: 'error', title: 'Error loading log', text: error.message });
+  } finally {
+    loadingLog.value = false;
+  }
+};
+
+const clearLog = async () => {
+  const result = await Swal.fire({
+    title: 'Clear Laravel log?',
+    text: 'This will delete all log entries',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Clear',
+    confirmButtonColor: '#ef4444'
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    const response = await fetch('/admin/commands/clear-log', {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+      },
+    });
+    const data = await response.json();
+    if (data.success) {
+      logContent.value = '';
+      logSize.value = '';
+      Swal.fire({ icon: 'success', title: 'Log cleared', timer: 2000 });
+    }
+  } catch (error) {
+    Swal.fire({ icon: 'error', title: 'Error', text: error.message });
+  }
+};
+
+const refreshBatches = () => {
+  router.reload({ only: ['batches', 'pendingJobs', 'failedJobs'] });
+};
+
+const clearAllBatches = async () => {
+  const result = await Swal.fire({
+    title: 'Clear all batch jobs?',
+    text: 'This will delete all batch job records from the database',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Clear All',
+    confirmButtonColor: '#ef4444'
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    const response = await fetch('/admin/commands/clear-batches', {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+      },
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      Swal.fire({ icon: 'success', title: 'All batch jobs cleared', timer: 2000 });
+      router.reload({ only: ['batches', 'pendingJobs'] });
+    }
+  } catch (error) {
+    Swal.fire({ icon: 'error', title: 'Error', text: error.message });
+  }
+};
 </script>

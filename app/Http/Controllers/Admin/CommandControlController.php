@@ -142,7 +142,7 @@ class CommandControlController extends Controller
     {
         try {
             Artisan::call('queue:flush');
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'All failed jobs cleared'
@@ -152,6 +152,101 @@ class CommandControlController extends Controller
                 'success' => false,
                 'message' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function getLaravelLog()
+    {
+        try {
+            $logPath = storage_path('logs/laravel.log');
+
+            if (!file_exists($logPath)) {
+                return response()->json([
+                    'success' => true,
+                    'content' => 'No log file found',
+                    'size' => 0
+                ]);
+            }
+
+            $fileSize = filesize($logPath);
+
+            // Read last 500KB of log file
+            $maxSize = 500 * 1024;
+            if ($fileSize > $maxSize) {
+                $file = fopen($logPath, 'r');
+                fseek($file, $fileSize - $maxSize);
+                $content = fread($file, $maxSize);
+                fclose($file);
+            } else {
+                $content = file_get_contents($logPath);
+            }
+
+            return response()->json([
+                'success' => true,
+                'content' => $content,
+                'size' => $fileSize,
+                'size_readable' => $this->formatBytes($fileSize)
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function clearLaravelLog()
+    {
+        try {
+            $logPath = storage_path('logs/laravel.log');
+
+            if (file_exists($logPath)) {
+                file_put_contents($logPath, '');
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Laravel log cleared'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function clearBatches()
+    {
+        try {
+            // Clear batch jobs
+            DB::table('job_batches')->truncate();
+
+            // Clear pending jobs from queue
+            DB::table('jobs')->truncate();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'All batch jobs and pending jobs cleared'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function formatBytes($bytes)
+    {
+        if ($bytes >= 1073741824) {
+            return number_format($bytes / 1073741824, 2) . ' GB';
+        } elseif ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 2) . ' MB';
+        } elseif ($bytes >= 1024) {
+            return number_format($bytes / 1024, 2) . ' KB';
+        } else {
+            return $bytes . ' bytes';
         }
     }
 }

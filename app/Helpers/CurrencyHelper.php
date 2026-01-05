@@ -9,12 +9,13 @@ class CurrencyHelper
 {
     /**
      * Get USDT to local currency conversion rate
-     * Uses CoinGecko API with 5-minute cache
+     * Uses CoinGecko API with optional caching
      *
      * @param string|null $currencyCode Currency code (e.g., 'ngn', 'usd', 'kes')
+     * @param bool $noCache Set to true to bypass cache and get real-time rate
      * @return float|null Exchange rate or null if failed
      */
-    public static function getUSDTRate(?string $currencyCode = null): ?float
+    public static function getUSDTRate(?string $currencyCode = null, bool $noCache = false): ?float
     {
         if (!$currencyCode) {
             $settings = \App\Models\GlobalSetting::first();
@@ -25,29 +26,42 @@ class CurrencyHelper
         $currencyCode = strtolower($currencyCode);
         $cacheKey = "usdt_rate_{$currencyCode}";
 
+        // If noCache is true, fetch directly without caching
+        if ($noCache) {
+            return self::fetchUSDTRate($currencyCode);
+        }
+
         return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($currencyCode) {
-            try {
-                // Try CoinGecko first
-                $response = Http::timeout(10)->get('https://api.coingecko.com/api/v3/simple/price', [
-                    'ids' => 'tether',
-                    'vs_currencies' => $currencyCode,
-                ]);
-
-                if ($response->successful()) {
-                    $data = $response->json();
-                    return $data['tether'][$currencyCode] ?? null;
-                }
-
-                // Fallback to Binance (if available)
-                return self::getBinanceRate($currencyCode);
-            } catch (\Exception $e) {
-                \Log::error('Currency conversion failed', [
-                    'currency' => $currencyCode,
-                    'error' => $e->getMessage(),
-                ]);
-                return null;
-            }
+            return self::fetchUSDTRate($currencyCode);
         });
+    }
+
+    /**
+     * Fetch USDT rate from API (internal method)
+     */
+    private static function fetchUSDTRate(string $currencyCode): ?float
+    {
+        try {
+            // Try CoinGecko first
+            $response = Http::timeout(10)->get('https://api.coingecko.com/api/v3/simple/price', [
+                'ids' => 'tether',
+                'vs_currencies' => $currencyCode,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['tether'][$currencyCode] ?? null;
+            }
+
+            // Fallback to Binance (if available)
+            return self::getBinanceRate($currencyCode);
+        } catch (\Exception $e) {
+            \Log::error('Currency conversion failed', [
+                'currency' => $currencyCode,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 
     /**
@@ -80,11 +94,12 @@ class CurrencyHelper
      *
      * @param float $amount Amount in local currency
      * @param string|null $currencyCode Currency code
+     * @param bool $noCache Set to true to bypass cache and get real-time rate
      * @return float|null Equivalent in USDT
      */
-    public static function toUSDT(float $amount, ?string $currencyCode = null): ?float
+    public static function toUSDT(float $amount, ?string $currencyCode = null, bool $noCache = false): ?float
     {
-        $rate = self::getUSDTRate($currencyCode);
+        $rate = self::getUSDTRate($currencyCode, $noCache);
 
         if (!$rate || $rate <= 0) {
             return null;

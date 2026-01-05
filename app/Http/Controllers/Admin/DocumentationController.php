@@ -44,6 +44,13 @@ class DocumentationController extends Controller
                 'icon' => '👁️',
                 'description' => 'Automatic KYC document verification using Google Cloud Vision API',
             ],
+            [
+                'title' => 'Queue System & Job Processing',
+                'slug' => 'queue-system',
+                'category' => 'System Architecture',
+                'icon' => '⚙️',
+                'description' => 'Understanding job queues, workers, and commission processing system',
+            ],
         ];
 
         // Only load content if requested

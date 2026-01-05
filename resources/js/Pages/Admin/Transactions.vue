@@ -89,6 +89,7 @@
             <tr>
               <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">User</th>
               <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Transaction ID</th>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Hash</th>
               <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Amount</th>
               <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Date</th>
               <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
@@ -101,7 +102,12 @@
                 <div class="font-semibold text-gray-900 text-sm">{{ txn.user?.full_name || 'Unknown' }}</div>
               </td>
               <td class="px-6 py-5">
-                <span class="font-mono text-sm text-gray-900 font-bold whitespace-nowrap">{{ txn.transaction_hash }}</span>
+                <div class="font-mono text-xs text-gray-900 font-bold max-w-[120px] truncate" :title="txn.id">
+                  {{ txn.id.substring(0, 8) }}...
+                </div>
+              </td>
+              <td class="px-6 py-5">
+                <span class="font-mono text-xs text-gray-900 font-bold max-w-[100px] truncate inline-block" :title="txn.transaction_hash">{{ txn.transaction_hash.substring(0, 8) }}...</span>
               </td>
               <td class="px-6 py-5">
                 <div class="text-sm font-bold text-gray-900">{{ formatCurrency(txn.amount) }}</div>

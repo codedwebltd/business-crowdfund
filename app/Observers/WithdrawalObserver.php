@@ -23,7 +23,7 @@ class WithdrawalObserver
             if ($transaction) {
                 $newStatus = match ($withdrawal->status) {
                     'PENDING' => 'PENDING',
-                    'PROCESSING' => 'PENDING',
+                    'PROCESSING' => 'PROCESSING',  // Show processing to user
                     'APPROVED' => 'APPROVED',
                     'COMPLETED' => 'COMPLETED',
                     'REJECTED' => 'REJECTED',

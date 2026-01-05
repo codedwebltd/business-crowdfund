@@ -259,6 +259,12 @@ Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(
         Route::post('/transactions/{id}/approve', [\App\Http\Controllers\Admin\TransactionController::class, 'approve']);
         Route::post('/transactions/{id}/reject', [\App\Http\Controllers\Admin\TransactionController::class, 'reject']);
 
+        // Withdrawals
+        Route::get('/withdrawals', [\App\Http\Controllers\Admin\WithdrawalController::class, 'index'])->name('admin.withdrawals');
+        Route::post('/withdrawals/{id}/approve', [\App\Http\Controllers\Admin\WithdrawalController::class, 'approve']);
+        Route::post('/withdrawals/{id}/reject', [\App\Http\Controllers\Admin\WithdrawalController::class, 'reject']);
+        Route::post('/withdrawals/{id}/processing', [\App\Http\Controllers\Admin\WithdrawalController::class, 'markProcessing']);
+
         // Testimonials
         Route::get('/testimonials', [\App\Http\Controllers\Admin\TestimonialController::class, 'index'])->name('admin.testimonials');
         Route::post('/testimonials/{id}/approve', [\App\Http\Controllers\Admin\TestimonialController::class, 'approve']);
@@ -406,10 +412,13 @@ Route::get('/demo2', function () {
 });
 
 // Admin Command Control Routes
-Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'role.redirect'])->prefix('admin')->group(function () {
     Route::get('/commands', [App\Http\Controllers\Admin\CommandControlController::class, 'index'])->name('admin.commands');
     Route::post('/commands/execute', [App\Http\Controllers\Admin\CommandControlController::class, 'execute']);
     Route::get('/commands/batch/{batchId}', [App\Http\Controllers\Admin\CommandControlController::class, 'getBatchStatus']);
     Route::post('/commands/retry/{id}', [App\Http\Controllers\Admin\CommandControlController::class, 'retryFailedJob']);
     Route::post('/commands/clear-failed', [App\Http\Controllers\Admin\CommandControlController::class, 'clearFailedJobs']);
+    Route::post('/commands/clear-batches', [App\Http\Controllers\Admin\CommandControlController::class, 'clearBatches']);
+    Route::get('/commands/laravel-log', [App\Http\Controllers\Admin\CommandControlController::class, 'getLaravelLog']);
+    Route::post('/commands/clear-log', [App\Http\Controllers\Admin\CommandControlController::class, 'clearLaravelLog']);
 });

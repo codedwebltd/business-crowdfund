@@ -305,6 +305,17 @@
                   <span class="text-gray-300 font-semibold">You'll Receive:</span>
                   <span class="text-green-400 font-bold text-lg">{{ formatMoney(finalAmount) }}</span>
                 </div>
+
+                <!-- Crypto Value in USDT -->
+                <div v-if="cryptoValueUSDT !== null" class="flex justify-between items-center bg-green-500/10 border border-green-500/30 rounded-lg p-3 mt-3">
+                  <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="text-gray-300 font-semibold">Crypto Value (USDT):</span>
+                  </div>
+                  <span class="text-green-400 font-bold text-lg">{{ cryptoValueUSDT.toFixed(2) }} USDT</span>
+                </div>
               </div>
             </div>
           </div>
@@ -521,11 +532,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import UserLayout from '@/Layouts/UserLayout.vue';
 import KYCUploadModal from '@/Components/KYCUploadModal.vue';
 import Swal from 'sweetalert2';
+import axios from 'axios';
 
 const props = defineProps({
   user: Object,
@@ -547,6 +559,11 @@ const props = defineProps({
 const loading = ref(false);
 const showTestimonialModal = ref(false);
 const showKycModal = ref(false);
+const cryptoValueUSDT = ref(null);
+const loadingCryptoRate = ref(false);
+const cachedRate = ref(null);
+const cacheTimestamp = ref(null);
+const fetchTimeout = ref(null);
 
 const withdrawalForm = ref({
   amount: null,
@@ -595,6 +612,87 @@ const canSubmit = computed(() => {
      (withdrawalForm.value.method === 'crypto' && props.hasCryptoDetails && props.cryptoEnabled))
   );
 });
+
+// Check if cached rate is still valid (60 seconds cache)
+const isCacheValid = () => {
+  if (!cacheTimestamp.value) return false;
+  const now = Date.now();
+  const cacheAge = now - cacheTimestamp.value;
+  return cacheAge < 60000; // 60 seconds cache
+};
+
+// Fetch real-time crypto value when amount changes
+const fetchCryptoValue = async (amount) => {
+  if (!amount || amount <= 0) {
+    cryptoValueUSDT.value = null;
+    return;
+  }
+
+  // Use cached rate if valid
+  if (isCacheValid() && cachedRate.value) {
+    cryptoValueUSDT.value = amount / cachedRate.value;
+    return;
+  }
+
+  loadingCryptoRate.value = true;
+  try {
+    // Fetch real-time USDT rate from CoinGecko API
+    const currencyCode = props.settings.platform_currency || 'NGN';
+    const response = await axios.get('https://api.coingecko.com/api/v3/simple/price', {
+      params: {
+        ids: 'tether',
+        vs_currencies: currencyCode.toLowerCase(),
+      },
+      timeout: 10000,
+    });
+
+    if (response.data && response.data.tether) {
+      const rate = response.data.tether[currencyCode.toLowerCase()];
+      if (rate && rate > 0) {
+        // Cache the rate
+        cachedRate.value = rate;
+        cacheTimestamp.value = Date.now();
+        cryptoValueUSDT.value = amount / rate;
+      } else {
+        cryptoValueUSDT.value = null;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch crypto rate:', error);
+    // If fetch fails but we have a cached rate, use it
+    if (cachedRate.value) {
+      cryptoValueUSDT.value = amount / cachedRate.value;
+    } else {
+      cryptoValueUSDT.value = null;
+    }
+  } finally {
+    loadingCryptoRate.value = false;
+  }
+};
+
+// Debounced fetch for better performance
+const debouncedFetchCryptoValue = (amount) => {
+  // Clear existing timeout
+  if (fetchTimeout.value) {
+    clearTimeout(fetchTimeout.value);
+  }
+
+  // If cache is valid, update immediately
+  if (isCacheValid() && cachedRate.value && amount > 0) {
+    cryptoValueUSDT.value = amount / cachedRate.value;
+    return;
+  }
+
+  // Otherwise debounce the API call
+  fetchTimeout.value = setTimeout(() => {
+    fetchCryptoValue(amount);
+  }, 300); // 300ms debounce
+};
+
+// Watch for amount changes and fetch crypto value
+watch(() => finalAmount.value, (newAmount) => {
+  debouncedFetchCryptoValue(newAmount);
+}, { immediate: true });
 
 const formatMoney = (amount) => {
   return new Intl.NumberFormat('en-NG', {

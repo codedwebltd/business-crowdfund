@@ -68,7 +68,7 @@ class TaskController extends Controller
                 ->where('created_at', '>', now()->subDays(7))
                 ->count();
 
-            if ($recentFraudCount > 0 || $request->has('recaptcha_token')) {
+            if ($recentFraudCount > 0) {
                 $token = $validated['recaptcha_token'] ?? null;
 
                 if (!$token) {

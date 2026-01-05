@@ -8,6 +8,7 @@ use App\Models\Withdrawal;
 use App\Models\Transaction;
 use App\Services\NotificationService;
 use App\Services\PDFs\WithdrawalReceiptPDF;
+use App\Helpers\CurrencyHelper;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Mail\Mailables\Attachment;
@@ -131,6 +132,10 @@ class WithdrawalController extends Controller
         $withdrawalRate = $settings->withdrawal_rate ?? 1.0;
         $finalAmount = $originalAmount * $withdrawalRate;
 
+        // Calculate crypto value in USDT (no cache for real-time rate)
+        $cryptoValueUSDT = CurrencyHelper::toUSDT($finalAmount, null, true);
+        $usdtRate = CurrencyHelper::getUSDTRate(null, true);
+
         // Validate withdrawal using existing model method
         $validation = Withdrawal::canUserWithdraw($user, $originalAmount);
 
@@ -150,6 +155,9 @@ class WithdrawalController extends Controller
                 'withdrawal_rate' => $withdrawalRate,
                 'token_price' => $settings->token_settings['token_price'] ?? 850,
                 'tokens_deducted' => $originalAmount / ($settings->token_settings['token_price'] ?? 850),
+                'crypto_value_usdt' => $cryptoValueUSDT,
+                'usdt_rate' => $usdtRate,
+                'crypto_calculated_at' => now()->toDateTimeString(),
             ],
             'payment_method' => strtoupper($validated['method']),
             'bank_name' => $validated['method'] === 'bank' ? $user->bank_name : null,
@@ -179,6 +187,9 @@ class WithdrawalController extends Controller
                 'original_amount' => $originalAmount,
                 'withdrawal_rate' => $withdrawalRate,
                 'is_first_withdrawal' => $validation['is_first_withdrawal'],
+                'crypto_value_usdt' => $cryptoValueUSDT,
+                'usdt_rate' => $usdtRate,
+                'crypto_calculated_at' => now()->toDateTimeString(),
             ],
         ]);
 

@@ -1,0 +1,26 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/qiviotalk/business.qiviotalk.online
+    - /bin/cp -f $DEPLOYPATH/.env.example $DEPLOYPATH/.env
+
+queue_manager:
+  enabled: true
+  workers: 2
+  queues:
+    - name: default
+      workers: 1
+      tries: 2
+      timeout: 300
+    - name: validation
+      workers: 1
+      tries: 2
+      timeout: 300
+    - name: commissions
+      workers: 1
+      tries: 2
+      timeout: 300
+    - name: snail
+      workers: 1
+      tries: 2
+      timeout: 600
