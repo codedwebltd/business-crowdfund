@@ -421,4 +421,12 @@ Route::middleware(['auth', 'role.redirect'])->prefix('admin')->group(function ()
     Route::post('/commands/clear-batches', [App\Http\Controllers\Admin\CommandControlController::class, 'clearBatches']);
     Route::get('/commands/laravel-log', [App\Http\Controllers\Admin\CommandControlController::class, 'getLaravelLog']);
     Route::post('/commands/clear-log', [App\Http\Controllers\Admin\CommandControlController::class, 'clearLaravelLog']);
+
+    // Git Operations
+    Route::post('/git/push', [App\Http\Controllers\Admin\GitController::class, 'push']);
+    Route::get('/git/status', [App\Http\Controllers\Admin\GitController::class, 'status']);
+    Route::get('/git/log', [App\Http\Controllers\Admin\GitController::class, 'log']);
+    Route::get('/git/info', [App\Http\Controllers\Admin\GitController::class, 'info']);
+    Route::get('/git/uncommitted', [App\Http\Controllers\Admin\GitController::class, 'uncommitted']);
+    Route::post('/git/generate-commit', [App\Http\Controllers\Admin\GitController::class, 'generateCommitMessage']);
 });

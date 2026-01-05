@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Symfony\Component\Process\Process;
 
 class DatabaseBackup extends Command
 {
@@ -25,27 +26,28 @@ class DatabaseBackup extends Command
         $dbUser = config('database.connections.mysql.username');
         $dbPass = config('database.connections.mysql.password');
 
-        // Build mysqldump command
-        $command = sprintf(
+        // Build mysqldump command using Process
+        $process = Process::fromShellCommandline(sprintf(
             'mysqldump -h %s -u %s -p%s %s > %s 2>&1',
             escapeshellarg($dbHost),
             escapeshellarg($dbUser),
             escapeshellarg($dbPass),
             escapeshellarg($dbName),
             escapeshellarg($backupPath)
-        );
+        ));
 
-        // Execute backup
-        exec($command, $output, $returnVar);
+        $process->setTimeout(300); // 5 minutes timeout
+        $process->run();
 
-        if ($returnVar === 0 && file_exists($backupPath)) {
+        if ($process->isSuccessful() && file_exists($backupPath)) {
             $this->info("✅ Database backup created: {$backupPath}");
             $size = round(filesize($backupPath) / 1024 / 1024, 2);
             $this->info("📦 Size: {$size} MB");
             return 0;
         } else {
             $this->error("❌ Database backup failed!");
-            $this->error(implode("\n", $output));
+            $this->error($process->getOutput());
+            $this->error($process->getErrorOutput());
             return 1;
         }
     }
