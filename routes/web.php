@@ -49,8 +49,8 @@ Route::get('/qr-code', [App\Http\Controllers\QRCodeController::class, 'generate'
 // Protected Routes with Fraud Detection & Role Redirect
 Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(function () {
     Route::get('/dashboard', function () {
-        $user = auth()->user()->load('plan');
-        $settings = \App\Models\GlobalSetting::get();
+        $user = auth()->user()->load(['plan', 'performance']);
+        $settings = \App\Models\GlobalSetting::first();
         $plans = \App\Models\Plan::where('is_active', true)->orderBy('order')->get();
 
         // If user doesn't have a plan, check for pending payment
@@ -125,6 +125,41 @@ Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(
             'is_good_time' => $latestHistory ? $latestHistory->isGoodWithdrawalTime() : false,
         ];
 
+        // Check for pending upgrade transaction
+        $pendingUpgrade = \App\Models\Transaction::where('user_id', $user->id)
+            ->where('transaction_type', 'PLAN_UPGRADE')
+            ->where('status', 'AWAITING_APPROVAL')
+            ->latest()
+            ->first();
+
+        // Check if user qualifies for plan upgrade
+        $qualifiedPlan = null;
+        $upgradeOffer = null;
+        if ($user->performance && !$pendingUpgrade) {
+            $starRating = $user->performance->star_rating ?? 1;
+
+            // Get qualified plan using order field (dynamic, won't break if plan names change)
+            // 1 star = Order 1, 2 stars = Order 2, etc.
+            $qualifiedPlan = \App\Models\Plan::where('order', $starRating)->first();
+
+            // Check if qualified plan is higher than current plan
+            if ($qualifiedPlan && $qualifiedPlan->order > $user->plan->order) {
+                $discount = $settings->plan_upgrade_discount_percentage ?? 20;
+                $originalPrice = $qualifiedPlan->price;
+                $discountedPrice = $originalPrice * (1 - $discount / 100);
+                $savings = $originalPrice - $discountedPrice;
+
+                $upgradeOffer = [
+                    'qualified_plan' => $qualifiedPlan,
+                    'discount_percentage' => $discount,
+                    'original_price' => $originalPrice,
+                    'discounted_price' => $discountedPrice,
+                    'savings' => $savings,
+                    'star_rating' => $starRating,
+                ];
+            }
+        }
+
         return Inertia::render('User/Dashboard', [
             'settings' => $settings,
             'auth' => [
@@ -138,6 +173,14 @@ Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(
             'tokenFluctuationEnabled' => $tokenFluctuationEnabled,
             'tokenRate' => $tokenRate,
             'hasRecentFraud' => $hasRecentFraud, // For reCAPTCHA trigger
+            'upgradeOffer' => $upgradeOffer, // Plan upgrade offer if qualified
+            'pendingUpgrade' => $pendingUpgrade ? [
+                'transaction_hash' => $pendingUpgrade->transaction_hash,
+                'plan_name' => $pendingUpgrade->metadata['new_plan_name'] ?? 'Unknown',
+                'amount' => $pendingUpgrade->amount,
+                'created_at' => $pendingUpgrade->created_at->toIso8601String(),
+                'metadata' => $pendingUpgrade->metadata,
+            ] : null,
         ]);
     })->name('dashboard');
 
@@ -159,6 +202,10 @@ Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(
     Route::post('/payment/initiate', [App\Http\Controllers\PaymentController::class, 'initiate'])->name('payment.initiate');
     Route::post('/payment/confirm', [App\Http\Controllers\PaymentController::class, 'confirm'])->name('payment.confirm');
     Route::get('/payment/view', [App\Http\Controllers\PaymentController::class, 'viewPaymentDetails'])->name('payment.view');
+
+    // Plan Upgrade Routes
+    Route::post('/plan/upgrade/payment', [App\Http\Controllers\PlanUpgradeController::class, 'showPayment'])->name('plan.upgrade.payment');
+    Route::post('/plan/upgrade/confirm', [App\Http\Controllers\PlanUpgradeController::class, 'confirmPayment'])->name('plan.upgrade.confirm');
 
     // User Tasks
     Route::post('/tasks/{id}/start', [App\Http\Controllers\User\TaskController::class, 'start'])->name('tasks.start');
@@ -233,6 +280,8 @@ Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(
         Route::post('/settings/referral', [\App\Http\Controllers\Admin\GlobalSettingsController::class, 'updateReferral']);
         Route::post('/settings/tasks', [\App\Http\Controllers\Admin\GlobalSettingsController::class, 'updateTasks']);
         Route::post('/settings/ranks', [\App\Http\Controllers\Admin\GlobalSettingsController::class, 'updateRanks']);
+        Route::post('/settings/star-ratings', [\App\Http\Controllers\Admin\GlobalSettingsController::class, 'updateStarRatings']);
+        Route::post('/settings/plan-upgrades', [\App\Http\Controllers\Admin\GlobalSettingsController::class, 'updatePlanUpgrades']);
         Route::post('/settings/financial', [\App\Http\Controllers\Admin\GlobalSettingsController::class, 'updateFinancial']);
         Route::post('/settings/fraud', [\App\Http\Controllers\Admin\GlobalSettingsController::class, 'updateFraud']);
         Route::post('/settings/token', [\App\Http\Controllers\Admin\GlobalSettingsController::class, 'updateToken']);
@@ -421,6 +470,16 @@ Route::middleware(['auth', 'role.redirect'])->prefix('admin')->group(function ()
     Route::post('/commands/clear-batches', [App\Http\Controllers\Admin\CommandControlController::class, 'clearBatches']);
     Route::get('/commands/laravel-log', [App\Http\Controllers\Admin\CommandControlController::class, 'getLaravelLog']);
     Route::post('/commands/clear-log', [App\Http\Controllers\Admin\CommandControlController::class, 'clearLaravelLog']);
+
+    // Announcements
+    Route::get('/announcements', [App\Http\Controllers\Admin\AnnouncementController::class, 'index'])->name('admin.announcements.index');
+    Route::get('/announcements/create', [App\Http\Controllers\Admin\AnnouncementController::class, 'create'])->name('admin.announcements.create');
+    Route::post('/announcements', [App\Http\Controllers\Admin\AnnouncementController::class, 'store'])->name('admin.announcements.store');
+    Route::get('/announcements/{announcement}/edit', [App\Http\Controllers\Admin\AnnouncementController::class, 'edit'])->name('admin.announcements.edit');
+    Route::put('/announcements/{announcement}', [App\Http\Controllers\Admin\AnnouncementController::class, 'update'])->name('admin.announcements.update');
+    Route::delete('/announcements/{announcement}', [App\Http\Controllers\Admin\AnnouncementController::class, 'destroy'])->name('admin.announcements.destroy');
+    Route::post('/announcements/{announcement}/send', [App\Http\Controllers\Admin\AnnouncementController::class, 'sendNotifications'])->name('admin.announcements.send');
+    Route::post('/announcements/generate-ai', [App\Http\Controllers\Admin\AnnouncementController::class, 'generateWithAI']);
 
     // Git Operations
     Route::post('/git/push', [App\Http\Controllers\Admin\GitController::class, 'push']);

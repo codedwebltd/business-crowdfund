@@ -2,59 +2,72 @@
   <AdminLayout title="Transaction Management" :settings="settings">
     <div class="mb-6">
       <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Transaction Management</h1>
-      <p class="text-gray-600 mt-1">Review and approve activation payments</p>
+      <p class="text-gray-600 mt-1">View all transactions including activation payments, task earnings, referral bonuses, and more</p>
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-      <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-4 sm:p-5 hover:shadow-lg transition-all">
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
+      <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-4 sm:p-5 hover:shadow-lg transition-all cursor-pointer" @click="typeFilter = 'ACTIVATION_PAYMENT'">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-xs sm:text-sm font-medium text-gray-600">Pending Review</p>
-            <p class="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{{ stats.pending }}</p>
+            <p class="text-xs sm:text-sm font-medium text-gray-600">Activation</p>
+            <p class="text-2xl sm:text-3xl font-bold text-purple-600 mt-1">{{ typeStats.ACTIVATION_PAYMENT }}</p>
           </div>
-          <div class="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl">
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-4 sm:p-5 hover:shadow-lg transition-all">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs sm:text-sm font-medium text-gray-600">Approved</p>
-            <p class="text-2xl sm:text-3xl font-bold text-green-600 mt-1">{{ stats.approved }}</p>
-          </div>
-          <div class="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl">
+          <div class="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
           </div>
         </div>
       </div>
-      <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-4 sm:p-5 hover:shadow-lg transition-all">
+      <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-4 sm:p-5 hover:shadow-lg transition-all cursor-pointer" @click="typeFilter = 'TASK_EARNING'">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-xs sm:text-sm font-medium text-gray-600">Rejected</p>
-            <p class="text-2xl sm:text-3xl font-bold text-red-600 mt-1">{{ stats.rejected }}</p>
+            <p class="text-xs sm:text-sm font-medium text-gray-600">Task Earnings</p>
+            <p class="text-2xl sm:text-3xl font-bold text-green-600 mt-1">{{ typeStats.TASK_EARNING }}</p>
           </div>
-          <div class="p-3 bg-gradient-to-br from-red-500 to-red-600 rounded-xl">
+          <div class="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
             </svg>
           </div>
         </div>
       </div>
-      <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-4 sm:p-5 hover:shadow-lg transition-all">
+      <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-4 sm:p-5 hover:shadow-lg transition-all cursor-pointer" @click="typeFilter = 'REFERRAL_BONUS'">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-xs sm:text-sm font-medium text-gray-600">Total</p>
-            <p class="text-2xl sm:text-3xl font-bold text-purple-600 mt-1">{{ stats.pending + stats.approved + stats.rejected }}</p>
+            <p class="text-xs sm:text-sm font-medium text-gray-600">Referral Bonus</p>
+            <p class="text-2xl sm:text-3xl font-bold text-blue-600 mt-1">{{ typeStats.REFERRAL_BONUS }}</p>
           </div>
-          <div class="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
+          <div class="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-4 sm:p-5 hover:shadow-lg transition-all cursor-pointer" @click="typeFilter = 'TEAM_COMMISSION'">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs sm:text-sm font-medium text-gray-600">Team Commission</p>
+            <p class="text-2xl sm:text-3xl font-bold text-orange-600 mt-1">{{ typeStats.TEAM_COMMISSION }}</p>
+          </div>
+          <div class="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-4 sm:p-5 hover:shadow-lg transition-all cursor-pointer" @click="typeFilter = 'WITHDRAWAL'">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs sm:text-sm font-medium text-gray-600">Withdrawals</p>
+            <p class="text-2xl sm:text-3xl font-bold text-red-600 mt-1">{{ typeStats.WITHDRAWAL }}</p>
+          </div>
+          <div class="p-3 bg-gradient-to-br from-red-500 to-red-600 rounded-xl">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
             </svg>
           </div>
         </div>
@@ -63,13 +76,21 @@
 
     <!-- Filters -->
     <div class="bg-white rounded-xl shadow-md border border-gray-100 p-4 mb-6">
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <select v-model="statusFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <select v-model="typeFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+          <option value="ALL">All Types ({{ transactions.length }})</option>
+          <option value="ACTIVATION_PAYMENT">Activation ({{ typeStats.ACTIVATION_PAYMENT }})</option>
+          <option value="TASK_EARNING">Task Earnings ({{ typeStats.TASK_EARNING }})</option>
+          <option value="REFERRAL_BONUS">Referral Bonus ({{ typeStats.REFERRAL_BONUS }})</option>
+          <option value="TEAM_COMMISSION">Team Commission ({{ typeStats.TEAM_COMMISSION }})</option>
+          <option value="WITHDRAWAL">Withdrawals ({{ typeStats.WITHDRAWAL }})</option>
+        </select>
+        <select v-if="typeFilter === 'ACTIVATION_PAYMENT'" v-model="statusFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
           <option value="AWAITING_APPROVAL">Pending ({{ stats.pending }})</option>
           <option value="APPROVED">Approved ({{ stats.approved }})</option>
           <option value="REJECTED">Rejected ({{ stats.rejected }})</option>
         </select>
-        <input v-model="searchQuery" type="text" placeholder="Search by user or ID..." class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+        <input v-model="searchQuery" type="text" placeholder="Search by user, ID, or description..." class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
         <button @click="applySearch" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg text-sm font-semibold hover:shadow-lg hover:shadow-purple-500/50 transition-all">
           Apply Filter
         </button>
@@ -88,8 +109,9 @@
           <thead class="bg-gray-50 border-b-2 border-gray-200">
             <tr>
               <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">User</th>
-              <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Transaction ID</th>
-              <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Hash</th>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Priority/Stars</th>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Type</th>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Description</th>
               <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Amount</th>
               <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Date</th>
               <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
@@ -100,35 +122,61 @@
             <tr v-for="txn in filteredTransactions" :key="txn.id" class="hover:bg-purple-50 transition-colors">
               <td class="px-6 py-5">
                 <div class="font-semibold text-gray-900 text-sm">{{ txn.user?.full_name || 'Unknown' }}</div>
+                <div class="text-xs text-gray-500 mt-0.5">{{ txn.user?.email || '' }}</div>
               </td>
               <td class="px-6 py-5">
-                <div class="font-mono text-xs text-gray-900 font-bold max-w-[120px] truncate" :title="txn.id">
-                  {{ txn.id.substring(0, 8) }}...
+                <div class="flex flex-col gap-1.5">
+                  <span :class="getPriorityBadgeClass(txn.priority)"
+                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold w-fit">
+                    {{ getPriorityIcon(txn.priority) }} {{ getPriorityText(txn.priority) }}
+                  </span>
+                  <div v-if="txn.user?.performance" class="flex items-center gap-1">
+                    <span class="text-sm">{{ getStarDisplay(txn.user.performance.star_rating) }}</span>
+                    <span v-if="txn.user.performance.star_rating === 5" class="text-sm">👑</span>
+                  </div>
                 </div>
               </td>
               <td class="px-6 py-5">
-                <span class="font-mono text-xs text-gray-900 font-bold max-w-[100px] truncate inline-block" :title="txn.transaction_hash">{{ txn.transaction_hash.substring(0, 8) }}...</span>
+                <span
+                  :class="{
+                    'bg-purple-100 text-purple-800 border-purple-200': txn.transaction_type === 'ACTIVATION_PAYMENT',
+                    'bg-green-100 text-green-800 border-green-200': txn.transaction_type === 'TASK_EARNING',
+                    'bg-blue-100 text-blue-800 border-blue-200': txn.transaction_type === 'REFERRAL_BONUS',
+                    'bg-orange-100 text-orange-800 border-orange-200': txn.transaction_type === 'TEAM_COMMISSION',
+                    'bg-red-100 text-red-800 border-red-200': txn.transaction_type === 'WITHDRAWAL'
+                  }"
+                  class="inline-flex px-2 py-1 rounded-lg text-xs font-bold border whitespace-nowrap"
+                >
+                  {{ txn.transaction_type.replace('_', ' ') }}
+                </span>
               </td>
               <td class="px-6 py-5">
-                <div class="text-sm font-bold text-gray-900">{{ formatCurrency(txn.amount) }}</div>
-                <div class="text-xs text-gray-500 mt-0.5">{{ txn.metadata?.plan_name || 'N/A' }}</div>
+                <div class="text-sm text-gray-900 max-w-[200px]">{{ txn.description || txn.metadata?.plan_name || 'N/A' }}</div>
               </td>
               <td class="px-6 py-5">
-                <div class="text-sm text-gray-900 font-medium whitespace-nowrap">{{ formatDate(txn.created_at) }}, {{ formatTime(txn.created_at) }}</div>
+                <div class="text-sm font-bold" :class="txn.is_credit ? 'text-green-600' : 'text-red-600'">
+                  {{ txn.is_credit ? '+' : '-' }}{{ formatCurrency(txn.amount) }}
+                </div>
+              </td>
+              <td class="px-6 py-5">
+                <div class="text-sm text-gray-900 font-medium whitespace-nowrap">{{ formatDate(txn.created_at) }}</div>
+                <div class="text-xs text-gray-500">{{ formatTime(txn.created_at) }}</div>
               </td>
               <td class="px-6 py-5">
                 <span
                   :class="{
                     'bg-yellow-100 text-yellow-800 border-yellow-200': txn.status === 'AWAITING_APPROVAL',
-                    'bg-green-100 text-green-800 border-green-200': txn.status === 'APPROVED',
-                    'bg-red-100 text-red-800 border-red-200': txn.status === 'REJECTED'
+                    'bg-green-100 text-green-800 border-green-200': txn.status === 'APPROVED' || txn.status === 'COMPLETED',
+                    'bg-red-100 text-red-800 border-red-200': txn.status === 'REJECTED' || txn.status === 'FAILED',
+                    'bg-blue-100 text-blue-800 border-blue-200': txn.status === 'PENDING'
                   }"
                   class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap"
                 >
                   <span :class="{
                     'w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse': txn.status === 'AWAITING_APPROVAL',
-                    'w-1.5 h-1.5 bg-green-500 rounded-full': txn.status === 'APPROVED',
-                    'w-1.5 h-1.5 bg-red-500 rounded-full': txn.status === 'REJECTED'
+                    'w-1.5 h-1.5 bg-green-500 rounded-full': txn.status === 'APPROVED' || txn.status === 'COMPLETED',
+                    'w-1.5 h-1.5 bg-red-500 rounded-full': txn.status === 'REJECTED' || txn.status === 'FAILED',
+                    'w-1.5 h-1.5 bg-blue-500 rounded-full': txn.status === 'PENDING'
                   }"></span>
                   {{ txn.status.replace('_', ' ') }}
                 </span>
@@ -142,7 +190,7 @@
                     </svg>
                   </button>
                   <button
-                    v-if="txn.status === 'AWAITING_APPROVAL'"
+                    v-if="txn.transaction_type === 'ACTIVATION_PAYMENT' && txn.status === 'AWAITING_APPROVAL'"
                     @click="approveTxn(txn.id)"
                     class="p-2 text-white bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-lg transition-all shadow-sm"
                     title="Approve"
@@ -152,7 +200,7 @@
                     </svg>
                   </button>
                   <button
-                    v-if="txn.status === 'AWAITING_APPROVAL'"
+                    v-if="txn.transaction_type === 'ACTIVATION_PAYMENT' && txn.status === 'AWAITING_APPROVAL'"
                     @click="rejectTxn(txn.id)"
                     class="p-2 text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-lg transition-all shadow-sm"
                     title="Reject"
@@ -303,23 +351,37 @@ import Swal from 'sweetalert2';
 const props = defineProps({
   transactions: Array,
   stats: Object,
+  typeStats: Object,
   currencySymbol: String,
   settings: Object,
 });
 
 const statusFilter = ref('AWAITING_APPROVAL');
+const typeFilter = ref('ACTIVATION_PAYMENT');
 const searchQuery = ref('');
 const viewingTransaction = ref(null);
 
 const filteredTransactions = computed(() => {
-  let filtered = props.transactions.filter(t => t.status === statusFilter.value);
+  let filtered = props.transactions;
 
+  // Filter by transaction type
+  if (typeFilter.value !== 'ALL') {
+    filtered = filtered.filter(t => t.transaction_type === typeFilter.value);
+  }
+
+  // Filter by status (only for activation payments)
+  if (typeFilter.value === 'ACTIVATION_PAYMENT') {
+    filtered = filtered.filter(t => t.status === statusFilter.value);
+  }
+
+  // Search filter
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
     filtered = filtered.filter(t =>
       t.user?.full_name?.toLowerCase().includes(query) ||
       t.user?.phone_number?.toLowerCase().includes(query) ||
-      t.transaction_hash?.toLowerCase().includes(query)
+      t.transaction_hash?.toLowerCase().includes(query) ||
+      t.description?.toLowerCase().includes(query)
     );
   }
 
@@ -340,6 +402,35 @@ const formatTime = (date) => new Date(date).toLocaleTimeString('en-US', {
   hour: '2-digit',
   minute: '2-digit'
 });
+
+const getStarDisplay = (stars) => {
+  if (!stars) return '⭐';
+  return '⭐'.repeat(stars);
+};
+
+const getPriorityIcon = (priority) => {
+  if (!priority) return '⚪';
+  const icons = { 5: '🔴', 4: '🟠', 3: '🟡', 2: '🔵', 1: '⚪' };
+  return icons[priority] || '⚪';
+};
+
+const getPriorityText = (priority) => {
+  if (!priority) return 'Very Low';
+  const texts = { 5: 'Urgent', 4: 'High', 3: 'Medium', 2: 'Low', 1: 'Very Low' };
+  return texts[priority] || 'Very Low';
+};
+
+const getPriorityBadgeClass = (priority) => {
+  if (!priority) return 'bg-gray-100 text-gray-700';
+  const classes = {
+    5: 'bg-red-100 text-red-700 border border-red-200',
+    4: 'bg-orange-100 text-orange-700 border border-orange-200',
+    3: 'bg-yellow-100 text-yellow-700 border border-yellow-200',
+    2: 'bg-blue-100 text-blue-700 border border-blue-200',
+    1: 'bg-gray-100 text-gray-600 border border-gray-200'
+  };
+  return classes[priority] || 'bg-gray-100 text-gray-700';
+};
 
 const viewTransaction = (txn) => viewingTransaction.value = txn;
 

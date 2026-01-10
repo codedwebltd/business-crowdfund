@@ -98,14 +98,25 @@ class Withdrawal extends Model
         $platformCountry = $settings->country_of_operation ?? 'NGA';
         $currencySymbol = CountryHelper::getCurrencySymbol($platformCountry);
 
-        // 1. Check minimum withdrawal based on rank
-        $minAmount = $user->features()->get('withdrawal_min', $settings->minimum_withdrawal ?? 5000);
+        // Get global withdrawal limits (baseline/override)
+        $globalMin = $settings->minimum_withdrawal ?? 5000;
+        $globalMax = $settings->maximum_withdrawal ?? 50000;
+        $globalPerDay = $settings->withdrawals_per_day ?? 1;
+
+        // Get rank-specific limits (if user has rank)
+        $rankLimits = $user->rank ? ($settings->withdrawal_limits_by_rank[$user->rank_id] ?? null) : null;
+
+        // Apply stricter-wins logic: Global overrides when stricter
+        $minAmount = $rankLimits ? max($globalMin, $rankLimits['min']) : $globalMin;
+        $maxAmount = $rankLimits ? min($globalMax, $rankLimits['max']) : $globalMax;
+        $dailyLimit = $rankLimits ? min($globalPerDay, $rankLimits['per_day'] ?? $globalPerDay) : $globalPerDay;
+
+        // 1. Check minimum withdrawal
         if ($amount < $minAmount) {
             $errors[] = "Minimum withdrawal for your rank is {$currencySymbol}" . number_format($minAmount, 2);
         }
 
-        // 2. Check maximum withdrawal based on rank
-        $maxAmount = $user->features()->get('withdrawal_max', $settings->maximum_withdrawal ?? 50000);
+        // 2. Check maximum withdrawal
         if ($amount > $maxAmount) {
             $errors[] = "Maximum withdrawal for your rank is {$currencySymbol}" . number_format($maxAmount, 2);
         }
@@ -116,7 +127,6 @@ class Withdrawal extends Model
         }
 
         // 4. Check daily withdrawal limit
-        $dailyLimit = $user->features()->get('withdrawals_per_day', $settings->withdrawals_per_day ?? 1);
         $todayCount = self::where('user_id', $user->id)
             ->whereDate('requested_at', today())
             ->whereIn('status', ['PENDING', 'PROCESSING', 'APPROVED', 'COMPLETED'])
@@ -162,23 +172,24 @@ class Withdrawal extends Model
 
     /**
      * Calculate priority score for processing queue
-     * From map.md: Priority Scoring Algorithm
+     * Based on UserPerformance star rating system
      */
     public static function calculatePriorityScore(User $user): int
     {
         $score = 0;
 
-        // Rank-based priority (Diamond users processed first)
-        $rankPriority = [
-            'DIAMOND' => 100,
-            'GOLD' => 50,
-            'SILVER' => 25,
-            'BRONZE' => 0,
-        ];
-        $score += $rankPriority[$user->rank?->name ?? 'BRONZE'] ?? 0;
+        // Star rating priority (5-star users processed first)
+        $performance = $user->performance;
+        if ($performance) {
+            // Star rating contributes most weight (1-5 stars = 20-100 points)
+            $score += ($performance->star_rating * 20);
 
-        // Team size bonus (big recruiters get priority)
-        $score += intval($user->total_team_size / 10);
+            // Team size bonus (big recruiters get priority)
+            $score += intval($performance->team_size / 10);
+
+            // Direct referrals bonus
+            $score += ($performance->direct_referrals * 2);
+        }
 
         // Account age bonus (older accounts slightly prioritized)
         if ($user->activation_date) {
@@ -203,6 +214,14 @@ class Withdrawal extends Model
         return max(0, $score); // Never negative
     }
 
+    /**
+     * Get priority level from user performance (1-5)
+     */
+    public function getPriorityLevel(): int
+    {
+        return $this->user->performance?->priority_level ?? 1;
+    }
+
     // ==================== STATUS MANAGEMENT ====================
 
     public function approve(User $admin, ?string $notes = null): void
@@ -220,6 +239,7 @@ class Withdrawal extends Model
             'transaction_type' => 'WITHDRAWAL',
             'balance_type' => 'WITHDRAWABLE',
             'amount' => $this->amount_requested,
+            'priority' => $this->user->getPriorityLevel(),
             'is_credit' => false,
             'status' => 'COMPLETED',
             'description' => "Withdrawal approved - {$this->payment_method}",
@@ -265,6 +285,7 @@ class Withdrawal extends Model
             'transaction_type' => 'WITHDRAWAL_REFUND',
             'balance_type' => 'WITHDRAWABLE',
             'amount' => $this->amount_requested,
+            'priority' => $this->user->getPriorityLevel(),
             'is_credit' => true,
             'status' => 'COMPLETED',
             'description' => "Withdrawal rejected: {$reason}",

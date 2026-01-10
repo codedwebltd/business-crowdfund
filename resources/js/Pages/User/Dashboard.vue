@@ -81,6 +81,278 @@
               </div>
             </div>
           </div>
+
+          <!-- Star Rating & Priority Section -->
+          <div v-if="user.status === 'ACTIVE' && user.performance" class="mt-4 pt-4 border-t border-white/10">
+            <div class="flex items-center justify-between gap-3">
+              <!-- Star Rating Display -->
+              <div class="flex items-center gap-2.5">
+                <div :class="[
+                  'p-2 rounded-lg',
+                  user.performance.star_rating === 5 ? 'bg-gradient-to-br from-yellow-500/30 to-orange-500/20' :
+                  user.performance.star_rating >= 4 ? 'bg-orange-500/20' :
+                  user.performance.star_rating >= 3 ? 'bg-yellow-500/20' :
+                  user.performance.star_rating >= 2 ? 'bg-blue-500/20' :
+                  'bg-gray-500/20'
+                ]">
+                  <svg class="w-4 h-4" :class="[
+                    user.performance.star_rating === 5 ? 'text-yellow-400' :
+                    user.performance.star_rating >= 4 ? 'text-orange-400' :
+                    user.performance.star_rating >= 3 ? 'text-yellow-400' :
+                    user.performance.star_rating >= 2 ? 'text-blue-400' :
+                    'text-gray-400'
+                  ]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Performance Rating</p>
+                  <div class="flex items-center gap-1.5 mt-0.5">
+                    <span class="text-sm font-bold">{{ '⭐'.repeat(user.performance.star_rating || 1) }}</span>
+                    <span v-if="user.performance.star_rating === 5" class="text-base">👑</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Priority Badge -->
+              <div>
+                <span :class="[
+                  'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border',
+                  user.performance.priority_level === 5 ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                  user.performance.priority_level === 4 ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' :
+                  user.performance.priority_level === 3 ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                  user.performance.priority_level === 2 ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                  'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                ]">
+                  {{ getPriorityIcon(user.performance.priority_level) }}
+                  {{ getPriorityText(user.performance.priority_level) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Performance Tooltip (if 5 stars) -->
+            <div v-if="user.performance.star_rating === 5" class="mt-3 flex items-start gap-2 text-xs text-yellow-400 bg-yellow-500/10 rounded-lg p-2 border border-yellow-500/20">
+              <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+              <span class="flex-1">You're a 5-star General! Your withdrawals have the HIGHEST priority and will be processed first.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pending Upgrade Payment Card -->
+        <div v-if="pendingUpgrade" class="bg-gradient-to-br from-orange-500/10 via-yellow-500/5 to-transparent rounded-2xl p-4 sm:p-5 border border-orange-500/30 mb-4 relative overflow-hidden">
+          <!-- Animated Background -->
+          <div class="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl animate-pulse"></div>
+          <div class="absolute bottom-0 left-0 w-24 h-24 bg-yellow-500/10 rounded-full blur-2xl"></div>
+
+          <div class="relative z-10">
+            <div class="flex flex-col sm:flex-row items-start gap-3 mb-4">
+              <div class="p-2.5 sm:p-3 bg-gradient-to-br from-orange-500/30 to-yellow-600/20 rounded-xl shrink-0">
+                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <div class="flex-1 w-full min-w-0">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                  <h3 class="text-base sm:text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-yellow-500 flex items-center gap-2">
+                    ⏳ Upgrade Payment Pending
+                  </h3>
+                  <span class="text-xs px-2 py-0.5 bg-orange-500/20 text-orange-400 rounded-full border border-orange-500/30 w-fit animate-pulse">Awaiting Approval</span>
+                </div>
+                <p class="text-xs sm:text-sm text-gray-300 mb-3 break-words">
+                  Your upgrade to <strong class="text-white">{{ pendingUpgrade.plan_name }}</strong> plan is pending admin approval. You'll be notified once processed.
+                </p>
+
+                <!-- Payment Info -->
+                <div class="bg-white/5 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/10 mb-3">
+                  <div class="grid grid-cols-2 gap-3 sm:gap-4 mb-3">
+                    <!-- Amount -->
+                    <div class="min-w-0">
+                      <p class="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider mb-1 truncate">Amount Paid</p>
+                      <p class="text-lg sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-yellow-500 truncate">
+                        ₦{{ formatNumber(pendingUpgrade.amount) }}
+                      </p>
+                    </div>
+                    <!-- Transaction ID -->
+                    <div class="min-w-0">
+                      <p class="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider mb-1 truncate">Transaction ID</p>
+                      <p class="text-xs sm:text-sm font-mono text-white truncate">{{ pendingUpgrade.transaction_hash }}</p>
+                    </div>
+                  </div>
+
+                  <!-- Time Since Submission -->
+                  <div class="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+                    <span class="text-[10px] sm:text-xs text-gray-400 truncate">Submitted:</span>
+                    <span class="text-xs sm:text-sm font-bold text-orange-400 truncate">{{ getTimeSinceSubmission(pendingUpgrade.created_at) }}</span>
+                  </div>
+                </div>
+
+                <!-- Action Button -->
+                <!--<form method="POST" action="/payment/view-details" class="w-full"> -->
+                  <form method="GET" action="/payment/view" class="w-full">
+                  <input type="hidden" name="_token" :value="$page.props.csrf_token || (typeof document !== 'undefined' ? document.querySelector('meta[name=csrf-token]')?.content : '')">
+                  <input type="hidden" name="transaction_id" :value="pendingUpgrade.transaction_hash">
+                  <button
+                    type="submit"
+                    class="w-full py-2.5 sm:py-3 bg-gradient-to-r from-orange-500 to-yellow-600 hover:from-orange-600 hover:to-yellow-700 text-white text-sm sm:text-base font-bold rounded-xl transition-all duration-300 shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2"
+                  >
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                    <span class="truncate">View Payment Details</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Plan Upgrade Available Card -->
+        <div v-else-if="upgradeOffer" class="bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-transparent rounded-2xl p-4 sm:p-5 border border-purple-500/30 mb-4 relative overflow-hidden animate-pulse-slow">
+          <!-- Animated Background -->
+          <div class="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
+          <div class="absolute bottom-0 left-0 w-24 h-24 bg-pink-500/10 rounded-full blur-2xl"></div>
+
+          <div class="relative z-10">
+            <div class="flex flex-col sm:flex-row items-start gap-3 mb-4">
+              <div class="p-2.5 sm:p-3 bg-gradient-to-br from-purple-500/30 to-pink-600/20 rounded-xl shrink-0">
+                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+                </svg>
+              </div>
+              <div class="flex-1 w-full min-w-0">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                  <h3 class="text-base sm:text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 flex items-center gap-2">
+                    🎁 Upgrade Available!
+                  </h3>
+                  <span class="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 rounded-full border border-green-500/30 w-fit">{{ upgradeOffer.discount_percentage }}% OFF</span>
+                </div>
+                <p class="text-xs sm:text-sm text-gray-300 mb-3 break-words">
+                  {{ '⭐'.repeat(upgradeOffer.star_rating) }} Congratulations! Based on your {{ upgradeOffer.star_rating }}-star performance, you qualify for the <strong class="text-white">{{ upgradeOffer.qualified_plan.display_name }}</strong> plan!
+                </p>
+
+                <!-- Pricing Display -->
+                <div class="bg-white/5 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/10 mb-3">
+                  <div class="grid grid-cols-2 gap-3 sm:gap-4">
+                    <!-- Original Price -->
+                    <div class="min-w-0">
+                      <p class="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider mb-1 truncate">Regular Price</p>
+                      <p class="text-sm sm:text-base text-gray-400 line-through truncate">₦{{ formatNumber(upgradeOffer.original_price) }}</p>
+                    </div>
+                    <!-- Your Price -->
+                    <div class="min-w-0">
+                      <p class="text-[10px] sm:text-xs text-green-400 uppercase tracking-wider mb-1 truncate">Your Price</p>
+                      <p class="text-lg sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500 truncate">
+                        ₦{{ formatNumber(upgradeOffer.discounted_price) }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Savings Badge -->
+                  <div class="mt-3 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+                    <span class="text-[10px] sm:text-xs text-gray-400 truncate">You Save:</span>
+                    <span class="text-xs sm:text-sm font-bold text-green-400 truncate">₦{{ formatNumber(upgradeOffer.savings) }}</span>
+                  </div>
+                </div>
+
+                <!-- Action Button -->
+                <button
+                  @click="showUpgradeModal = true"
+                  class="w-full py-2.5 sm:py-3 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white text-sm sm:text-base font-bold rounded-xl transition-all duration-300 shadow-lg shadow-purple-500/30 flex items-center justify-center gap-2"
+                >
+                  <svg class="w-4 h-4 sm:w-5 sm:h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                  </svg>
+                  <span class="truncate">Upgrade Now - {{ upgradeOffer.discount_percentage }}% OFF!</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- New User Welcome Block (for newly activated users with no tasks yet) -->
+        <div v-if="user.status === 'ACTIVE' && tasks.length === 0 && isNewlyActivated()" class="bg-gradient-to-br from-green-500/10 via-emerald-500/5 to-transparent rounded-2xl p-4 md:p-5 border border-green-500/30 mb-4 relative overflow-hidden">
+          <!-- Animated Background -->
+          <div class="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl animate-pulse"></div>
+          <div class="absolute bottom-0 left-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl"></div>
+
+          <div class="relative z-10">
+            <div class="flex flex-col sm:flex-row items-start gap-3 mb-4">
+              <div class="p-2.5 sm:p-3 bg-gradient-to-br from-green-500/30 to-emerald-600/20 rounded-xl shrink-0">
+                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <div class="flex-1 w-full">
+                <h3 class="text-base sm:text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500 mb-2">
+                  Welcome to {{ user.plan?.display_name || 'Qiviotalk' }}!
+                </h3>
+                <p class="text-xs sm:text-sm text-gray-300 mb-3">
+                  Your account has been successfully activated. We're preparing your personalized tasks right now!
+                </p>
+
+                <!-- Countdown Timer -->
+                <div class="bg-white/5 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-green-500/20">
+                  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Tasks Available In</p>
+                    <div class="flex items-center gap-1.5 px-2 py-1 bg-green-500/20 rounded-lg w-fit">
+                      <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+                      <span class="text-[10px] font-bold text-green-400 uppercase">Preparing</span>
+                    </div>
+                  </div>
+
+                  <!-- Countdown Display -->
+                  <div class="flex items-center justify-center gap-2 sm:gap-3">
+                    <div class="flex-1 max-w-[80px] text-center bg-gradient-to-br from-green-500/20 to-transparent rounded-lg px-2 sm:px-3 py-2 sm:py-3 border border-green-500/20">
+                      <div class="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500">
+                        {{ getNewUserCountdown().hours }}
+                      </div>
+                      <div class="text-[9px] sm:text-[10px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Hours</div>
+                    </div>
+                    <div class="text-lg sm:text-xl font-bold text-green-400">:</div>
+                    <div class="flex-1 max-w-[80px] text-center bg-gradient-to-br from-green-500/20 to-transparent rounded-lg px-2 sm:px-3 py-2 sm:py-3 border border-green-500/20">
+                      <div class="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500">
+                        {{ getNewUserCountdown().minutes }}
+                      </div>
+                      <div class="text-[9px] sm:text-[10px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Mins</div>
+                    </div>
+                    <div class="text-lg sm:text-xl font-bold text-green-400">:</div>
+                    <div class="flex-1 max-w-[80px] text-center bg-gradient-to-br from-green-500/20 to-transparent rounded-lg px-2 sm:px-3 py-2 sm:py-3 border border-green-500/20">
+                      <div class="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500">
+                        {{ getNewUserCountdown().seconds }}
+                      </div>
+                      <div class="text-[9px] sm:text-[10px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Secs</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- What to Expect -->
+                <div class="mt-3 sm:mt-4 space-y-2">
+                  <p class="text-xs font-bold text-green-400 uppercase tracking-wider mb-2">What to Expect:</p>
+                  <div class="flex items-start gap-2 text-xs text-gray-300">
+                    <svg class="w-4 h-4 text-green-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span class="flex-1">Your first batch of tasks will appear within 24 hours</span>
+                  </div>
+                  <div class="flex items-start gap-2 text-xs text-gray-300">
+                    <svg class="w-4 h-4 text-green-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span class="flex-1">Check your email for your TOS & Partnership Agreement PDFs</span>
+                  </div>
+                  <div class="flex items-start gap-2 text-xs text-gray-300">
+                    <svg class="w-4 h-4 text-green-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span class="flex-1">Explore the dashboard and invite friends to earn referral bonuses</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Task Ban Warning (if banned) -->
@@ -532,12 +804,119 @@
       @close="closeTaskViewer"
       @completed="handleTaskCompleted"
     />
+
+    <!-- Plan Upgrade Modal -->
+    <Teleport to="body">
+      <div v-if="showUpgradeModal && upgradeOffer" class="fixed inset-0 z-[9999] overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+          <!-- Backdrop -->
+          <div class="fixed inset-0 bg-black/80 backdrop-blur-sm" @click="showUpgradeModal = false"></div>
+
+          <!-- Modal -->
+          <div class="relative bg-gradient-to-br from-gray-900 to-black rounded-2xl w-full max-w-2xl border border-white/10 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <!-- Header -->
+            <div class="sticky top-0 bg-gradient-to-r from-purple-500 to-pink-600 px-6 py-4 flex items-center justify-between border-b border-white/10 z-10">
+              <div>
+                <h2 class="text-xl font-bold text-white">Upgrade to {{ upgradeOffer.qualified_plan.display_name }}</h2>
+                <p class="text-sm text-purple-100 mt-1">{{ upgradeOffer.discount_percentage }}% Special Discount Applied!</p>
+              </div>
+              <button @click="showUpgradeModal = false" class="p-2 hover:bg-white/10 rounded-lg transition">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Content -->
+            <div class="p-6 space-y-6">
+              <!-- Pricing Summary -->
+              <div class="bg-gradient-to-br from-purple-500/10 to-pink-500/5 rounded-xl p-5 border border-purple-500/20">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Regular Price</p>
+                    <p class="text-lg text-gray-400 line-through">₦{{ formatNumber(upgradeOffer.original_price) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-green-400 uppercase tracking-wider mb-1">Your Price</p>
+                    <p class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500">
+                      ₦{{ formatNumber(upgradeOffer.discounted_price) }}
+                    </p>
+                  </div>
+                </div>
+                <div class="pt-3 border-t border-white/10 flex items-center justify-between">
+                  <span class="text-sm text-gray-300">Total Savings:</span>
+                  <span class="text-xl font-bold text-green-400">₦{{ formatNumber(upgradeOffer.savings) }}</span>
+                </div>
+              </div>
+
+              <!-- Payment Method Selection -->
+              <div>
+                <label class="block text-sm font-bold text-white mb-3">Select Payment Method</label>
+                <div class="grid grid-cols-2 gap-3">
+                  <button
+                    v-if="settings.payment_gateways?.bank_transfer?.enabled"
+                    @click="selectedPaymentMethod = 'bank_transfer'"
+                    :class="[
+                      'p-4 rounded-xl border-2 transition-all',
+                      selectedPaymentMethod === 'bank_transfer'
+                        ? 'border-purple-500 bg-purple-500/10'
+                        : 'border-white/10 bg-white/5 hover:border-white/20'
+                    ]"
+                  >
+                    <svg class="w-8 h-8 mx-auto mb-2" :class="selectedPaymentMethod === 'bank_transfer' ? 'text-purple-400' : 'text-gray-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                    </svg>
+                    <p class="text-sm font-semibold" :class="selectedPaymentMethod === 'bank_transfer' ? 'text-white' : 'text-gray-400'">Bank Transfer</p>
+                  </button>
+
+                  <button
+                    v-if="settings.payment_gateways?.crypto_transfer?.enabled"
+                    @click="selectedPaymentMethod = 'crypto_transfer'"
+                    :class="[
+                      'p-4 rounded-xl border-2 transition-all',
+                      selectedPaymentMethod === 'crypto_transfer'
+                        ? 'border-purple-500 bg-purple-500/10'
+                        : 'border-white/10 bg-white/5 hover:border-white/20'
+                    ]"
+                  >
+                    <svg class="w-8 h-8 mx-auto mb-2" :class="selectedPaymentMethod === 'crypto_transfer' ? 'text-purple-400' : 'text-gray-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-sm font-semibold" :class="selectedPaymentMethod === 'crypto_transfer' ? 'text-white' : 'text-gray-400'">Crypto (USDT)</p>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Payment Button -->
+              <button
+                @click="proceedToPayment"
+                :disabled="processingPayment"
+                :class="[
+                  'w-full py-4 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-xl transition-all duration-300 shadow-lg shadow-purple-500/30 flex items-center justify-center gap-2',
+                  processingPayment ? 'opacity-70 cursor-not-allowed' : ''
+                ]"
+              >
+                <svg v-if="processingPayment" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>{{ processingPayment ? 'Processing...' : `Proceed to Payment - ₦${formatNumber(upgradeOffer.discounted_price)}` }}</span>
+              </button>
+
+              <p class="text-xs text-center text-gray-400">
+                After payment, your account will be upgraded within 2-4 hours of admin approval
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </UserLayout>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import UserLayout from '@/Layouts/UserLayout.vue';
 import StatCard from '@/Components/StatCard.vue';
 import AnnouncementCarousel from '@/Components/AnnouncementCarousel.vue';
@@ -572,6 +951,18 @@ const props = defineProps({
       is_good_time: false
     })
   },
+  upgradeOffer: {
+    type: Object,
+    default: null
+  },
+  pendingUpgrade: {
+    type: Object,
+    default: null
+  },
+  settings: {
+    type: Object,
+    default: () => ({})
+  },
   stats: {
     type: Object,
     default: () => ({
@@ -593,6 +984,9 @@ const tokenRate = ref(props.tokenRate);
 const currentTime = ref(Date.now());
 const showTaskViewer = ref(false);
 const selectedTask = ref(null);
+const showUpgradeModal = ref(false);
+const selectedPaymentMethod = ref('crypto_transfer');
+const processingPayment = ref(false);
 let timerInterval = null;
 
 // Countdown timer - updates every second and auto-expires tasks
@@ -700,6 +1094,18 @@ const getAccountAge = () => {
   return `${Math.floor(diffDays / 365)}yr`;
 };
 
+const getPriorityIcon = (priority) => {
+  if (!priority) return '⚪';
+  const icons = { 5: '🔴', 4: '🟠', 3: '🟡', 2: '🔵', 1: '⚪' };
+  return icons[priority] || '⚪';
+};
+
+const getPriorityText = (priority) => {
+  if (!priority) return 'Very Low';
+  const texts = { 5: 'Urgent', 4: 'High', 3: 'Medium', 2: 'Low', 1: 'Very Low' };
+  return texts[priority] || 'Very Low';
+};
+
 const formatJoinDate = () => {
   if (!props.user.created_at) return 'Recently';
   const date = new Date(props.user.created_at);
@@ -732,6 +1138,21 @@ const isTaskExpiringSoon = (expiresAt) => {
   const expiry = new Date(expiresAt).getTime();
   const diff = expiry - now;
   return diff > 0 && diff < 5 * 60 * 1000; // Less than 5 minutes
+};
+
+const getTimeSinceSubmission = (createdAt) => {
+  const now = currentTime.value;
+  const submitted = new Date(createdAt).getTime();
+  const diff = now - submitted;
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (days > 0) return `${days}d ${hours}h ago`;
+  if (hours > 0) return `${hours}h ${minutes}m ago`;
+  if (minutes > 0) return `${minutes}m ago`;
+  return 'Just now';
 };
 
 const startTask = (task) => {
@@ -870,6 +1291,63 @@ const getDailyProgress = () => {
   const todayTasks = props.tasks?.length || 1; // Avoid division by zero
 
   return Math.round(Math.min((completedToday / todayTasks) * 100, 100));
+};
+
+// Check if user is newly activated (within 24 hours)
+const isNewlyActivated = () => {
+  if (!props.user.activation_date || props.user.status !== 'ACTIVE') return false;
+
+  const activationTime = new Date(props.user.activation_date).getTime();
+  const now = currentTime.value;
+  const hoursSinceActivation = (now - activationTime) / (1000 * 60 * 60);
+
+  return hoursSinceActivation >= 0 && hoursSinceActivation < 24;
+};
+
+// Get countdown to 24 hours from activation
+const getNewUserCountdown = () => {
+  if (!props.user.activation_date) {
+    return { hours: 0, minutes: 0, seconds: 0 };
+  }
+
+  const activationTime = new Date(props.user.activation_date).getTime();
+  const twentyFourHoursLater = activationTime + (24 * 60 * 60 * 1000);
+  const now = currentTime.value;
+  const diff = twentyFourHoursLater - now;
+
+  if (diff <= 0) {
+    return { hours: 0, minutes: 0, seconds: 0 };
+  }
+
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+  return {
+    hours: String(hours).padStart(2, '0'),
+    minutes: String(minutes).padStart(2, '0'),
+    seconds: String(seconds).padStart(2, '0')
+  };
+};
+
+const proceedToPayment = () => {
+  if (!props.upgradeOffer || !selectedPaymentMethod.value) {
+    alert('Please select a payment method');
+    return;
+  }
+
+  // Prevent duplicate clicks
+  if (processingPayment.value) return;
+
+  processingPayment.value = true;
+
+  // Redirect to payment page with upgrade data
+  router.post('/plan/upgrade/payment', {
+    plan_id: props.upgradeOffer.qualified_plan.id,
+    payment_method: selectedPaymentMethod.value,
+    discount_percentage: props.upgradeOffer.discount_percentage,
+    discounted_price: props.upgradeOffer.discounted_price,
+  });
 };
 </script>
 

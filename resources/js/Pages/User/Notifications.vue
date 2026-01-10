@@ -90,9 +90,9 @@
               <div class="flex-shrink-0">
                 <div
                   class="w-12 h-12 rounded-xl flex items-center justify-center"
-                  :class="getIconBackground(notification.type)"
+                  :class="getIconBackground(notification.data?.type)"
                 >
-                  <component :is="getIcon(notification.type)" class="w-6 h-6 text-white" />
+                  <component :is="getIcon(notification.data?.type)" class="w-6 h-6 text-white" />
                 </div>
               </div>
 
@@ -306,38 +306,45 @@ const filters = computed(() => [
   {
     label: 'Tasks',
     value: 'tasks',
-    count: props.notifications.filter(n => n.type === 'task_completed').length
+    count: props.notifications.filter(n => n.data?.type === 'task_completed').length
   },
   {
     label: 'Withdrawals',
     value: 'withdrawals',
     count: props.notifications.filter(n =>
-      n.type === 'withdrawal_requested' ||
-      n.type === 'withdrawal_approved' ||
-      n.type === 'withdrawal_completed' ||
-      n.type === 'withdrawal_rejected'
+      n.data?.type === 'withdrawal_requested' ||
+      n.data?.type === 'withdrawal_processing' ||
+      n.data?.type === 'withdrawal_approved' ||
+      n.data?.type === 'withdrawal_completed' ||
+      n.data?.type === 'withdrawal_rejected'
     ).length
   },
   {
     label: 'Earnings',
     value: 'earnings',
     count: props.notifications.filter(n =>
-      n.type === 'referral_bonus' ||
-      n.type === 'rank_upgraded' ||
-      n.type === 'task_completed'
+      n.data?.type === 'referral_bonus' ||
+      n.data?.type === 'rank_upgraded' ||
+      n.data?.type === 'task_completed' ||
+      n.data?.type === 'balance_matured'
     ).length
   },
   {
     label: 'System',
     value: 'system',
     count: props.notifications.filter(n =>
-      n.type === 'testimonial_approved' ||
-      n.type === 'testimonial_review' ||
-      n.type === 'testimonial_rejected' ||
-      n.type === 'kyc_approved' ||
-      n.type === 'kyc_rejected' ||
-      n.type === 'kyc_pending_review' ||
-      n.type === 'burn_rate_alert'
+      n.data?.type === 'account_activated' ||
+      n.data?.type === 'payment_rejected' ||
+      n.data?.type === 'testimonial_approved' ||
+      n.data?.type === 'testimonial_review' ||
+      n.data?.type === 'testimonial_rejected' ||
+      n.data?.type === 'kyc_approved' ||
+      n.data?.type === 'kyc_rejected' ||
+      n.data?.type === 'kyc_pending_review' ||
+      n.data?.type === 'burn_rate_alert' ||
+      n.data?.type === 'star_rating_promoted' ||
+      n.data?.type === 'star_rating_demoted' ||
+      n.data?.type === 'plan_upgrade_available'
     ).length
   },
 ]);
@@ -347,39 +354,46 @@ const filteredNotifications = computed(() => {
   if (activeFilter.value === 'unread') return props.notifications.filter(n => !n.read_at);
 
   if (activeFilter.value === 'tasks') {
-    return props.notifications.filter(n => n.type === 'task_completed');
+    return props.notifications.filter(n => n.data?.type === 'task_completed');
   }
 
   if (activeFilter.value === 'withdrawals') {
     return props.notifications.filter(n =>
-      n.type === 'withdrawal_requested' ||
-      n.type === 'withdrawal_approved' ||
-      n.type === 'withdrawal_completed' ||
-      n.type === 'withdrawal_rejected'
+      n.data?.type === 'withdrawal_requested' ||
+      n.data?.type === 'withdrawal_processing' ||
+      n.data?.type === 'withdrawal_approved' ||
+      n.data?.type === 'withdrawal_completed' ||
+      n.data?.type === 'withdrawal_rejected'
     );
   }
 
   if (activeFilter.value === 'earnings') {
     return props.notifications.filter(n =>
-      n.type === 'referral_bonus' ||
-      n.type === 'rank_upgraded' ||
-      n.type === 'task_completed'
+      n.data?.type === 'referral_bonus' ||
+      n.data?.type === 'rank_upgraded' ||
+      n.data?.type === 'task_completed' ||
+      n.data?.type === 'balance_matured'
     );
   }
 
   if (activeFilter.value === 'system') {
     return props.notifications.filter(n =>
-      n.type === 'testimonial_approved' ||
-      n.type === 'testimonial_review' ||
-      n.type === 'testimonial_rejected' ||
-      n.type === 'kyc_approved' ||
-      n.type === 'kyc_rejected' ||
-      n.type === 'kyc_pending_review' ||
-      n.type === 'burn_rate_alert'
+      n.data?.type === 'account_activated' ||
+      n.data?.type === 'payment_rejected' ||
+      n.data?.type === 'testimonial_approved' ||
+      n.data?.type === 'testimonial_review' ||
+      n.data?.type === 'testimonial_rejected' ||
+      n.data?.type === 'kyc_approved' ||
+      n.data?.type === 'kyc_rejected' ||
+      n.data?.type === 'kyc_pending_review' ||
+      n.data?.type === 'burn_rate_alert' ||
+      n.data?.type === 'star_rating_promoted' ||
+      n.data?.type === 'star_rating_demoted' ||
+      n.data?.type === 'plan_upgrade_available'
     );
   }
 
-  return props.notifications.filter(n => n.type === activeFilter.value);
+  return props.notifications.filter(n => n.data?.type === activeFilter.value);
 });
 
 const getIconBackground = (type) => {

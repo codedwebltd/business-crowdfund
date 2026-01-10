@@ -55,6 +55,7 @@ class User extends Authenticatable
     public function rank() { return $this->belongsTo(Rank::class); }
     public function referrer() { return $this->belongsTo(User::class, 'referred_by_id'); }
     public function directReferrals() { return $this->hasMany(User::class, 'referred_by_id'); }
+    public function referrals() { return $this->hasMany(User::class, 'referred_by_id'); } // Alias for directReferrals
     public function plan() { return $this->belongsTo(Plan::class); }
     public function wallet() { return $this->hasOne(Wallet::class); }
     public function referralTree() { return $this->hasOne(ReferralTree::class); }
@@ -69,6 +70,7 @@ class User extends Authenticatable
     public function kycVerifications() { return $this->hasMany(KycVerification::class); }
     public function latestKyc() { return $this->hasOne(KycVerification::class)->latest(); }
     public function dismissedAnnouncements() { return $this->belongsToMany(Announcement::class, 'announcement_users')->withTimestamps(); }
+    public function performance() { return $this->hasOne(UserPerformance::class); }
 
     // Scopes
     public function scopeActive($query) { return $query->where('status', 'active'); }
@@ -76,12 +78,45 @@ class User extends Authenticatable
     public function scopeRecentlyActive($query) { return $query->where('last_task_completed_at', '>=', now()->subDays(7)); }
     public function scopeWith2FA($query) { return $query->where('google2fa_enabled', true); }
 
+    // Star Rating Scopes
+    public function scopeByStarRating($query, int $stars) {
+        return $query->whereHas('performance', fn($q) => $q->where('star_rating', $stars));
+    }
+    public function scopeGenerals($query) {
+        return $query->whereHas('performance', fn($q) => $q->where('star_rating', 5));
+    }
+    public function scopeHighPerformers($query) {
+        return $query->whereHas('performance', fn($q) => $q->where('star_rating', '>=', 4));
+    }
+
     // Helper Methods
     public function isAdmin(): bool { return $this->role === 1; }
     public function isPhoneVerified(): bool { return !is_null($this->phone_verified_at); }
     public function isActive(): bool { return $this->status === 'ACTIVE'; }
     public function hasCompletedKYC(): bool { return !is_null($this->kyc_verified_at); }
     public function has2FAEnabled(): bool { return $this->google2fa_enabled && !is_null($this->google2fa_secret); }
+
+    // Star Rating Helper Methods
+    public function getStarRating(): int {
+        return $this->performance?->star_rating ?? 1;
+    }
+
+    public function getStarDisplay(): string {
+        $stars = $this->getStarRating();
+        $display = str_repeat('⭐', $stars);
+        if ($stars === 5) {
+            $display .= ' 👑'; // King icon for 5-star generals
+        }
+        return $display;
+    }
+
+    public function isGeneral(): bool {
+        return $this->getStarRating() === 5;
+    }
+
+    public function getPriorityLevel(): int {
+        return $this->performance?->priority_level ?? 1;
+    }
 
     /**
      * Get the channels to broadcast notifications on
@@ -148,13 +183,28 @@ class User extends Authenticatable
     }
 
     /**
-     * Assign Bronze rank on first activation (called after payment)
+     * Assign rank based on purchased plan
+     * Uses the rank_id configured in the plan by admin
      */
-    public function assignBronzeRank(): void
+    public function assignRankFromPlan(Plan $plan): void
     {
-        if (is_null($this->rank_id)) {
-            $bronzeRank = Rank::where('is_active', true)->orderBy('order')->first();
-            $this->update(['rank_id' => $bronzeRank?->id]);
+        // Only assign rank if user doesn't have one yet
+        if (!is_null($this->rank_id)) {
+            return;
+        }
+
+        // Use the rank configured in the plan (set by admin)
+        if ($plan->rank_id) {
+            $this->update(['rank_id' => $plan->rank_id]);
+        } else {
+            // Fallback: assign bronze rank if plan has no rank configured
+            $bronzeRank = Rank::where('name', 'bronze')
+                ->where('is_active', true)
+                ->first();
+
+            if ($bronzeRank) {
+                $this->update(['rank_id' => $bronzeRank->id]);
+            }
         }
     }
 
@@ -173,42 +223,12 @@ class User extends Authenticatable
 
     /**
      * Calculate priority score for withdrawal processing
+     * Based on UserPerformance star rating system
      * Higher score = processed first
      */
     public function calculatePriorityScore(): int
     {
-        $score = 0;
-
-        // Rank-based priority (Diamond users processed first)
-        if ($this->rank) {
-            $score += match($this->rank->name) {
-                'Diamond' => 100,
-                'Gold' => 50,
-                'Silver' => 25,
-                default => 0,
-            };
-        }
-
-        // Team size bonus (big recruiters get priority)
-        $score += (int)($this->total_team_size / 10);
-
-        // Account age bonus (older accounts slightly prioritized)
-        if ($this->activation_date) {
-            $daysActive = now()->diffInDays($this->activation_date);
-            $score += (int)($daysActive / 7);
-        }
-
-        // Previous withdrawal success (reliable users prioritized)
-        $successfulWithdrawals = $this->withdrawals()->where('status', 'COMPLETED')->count();
-        $score += $successfulWithdrawals * 5;
-
-        // Penalty for high withdrawal frequency
-        $recentWithdrawals = $this->withdrawals()->where('created_at', '>=', now()->subDays(7))->count();
-        if ($recentWithdrawals > 3) {
-            $score -= 20;
-        }
-
-        return max(0, $score);
+        return Withdrawal::calculatePriorityScore($this);
     }
 
     public function deviceFingerprints()

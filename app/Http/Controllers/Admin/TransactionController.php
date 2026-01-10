@@ -7,19 +7,22 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Models\GlobalSetting;
 use App\Services\NotificationService;
+use App\Services\PDFs\WelcomeContractPDF;
+use App\Services\PDFs\TermsAndConditionsPDF;
 use Illuminate\Http\Request;
+use Illuminate\Mail\Mailables\Attachment;
 use Inertia\Inertia;
 
 class TransactionController extends Controller
 {
     public function index()
     {
-        $transactions = Transaction::with('user')
-            ->where('transaction_type', 'ACTIVATION_PAYMENT')
-            ->whereIn('status', ['AWAITING_APPROVAL', 'APPROVED', 'REJECTED'])
+        // Fetch ALL transactions with user and performance relationships
+        $transactions = Transaction::with(['user', 'user.performance'])
             ->latest()
             ->get();
 
+        // Stats for activation payments (for backwards compatibility)
         $stats = [
             'pending' => Transaction::where('transaction_type', 'ACTIVATION_PAYMENT')
                 ->where('status', 'AWAITING_APPROVAL')->count(),
@@ -29,11 +32,21 @@ class TransactionController extends Controller
                 ->where('status', 'REJECTED')->count(),
         ];
 
+        // Transaction type statistics
+        $typeStats = [
+            'ACTIVATION_PAYMENT' => Transaction::where('transaction_type', 'ACTIVATION_PAYMENT')->count(),
+            'TASK_EARNING' => Transaction::where('transaction_type', 'TASK_EARNING')->count(),
+            'REFERRAL_BONUS' => Transaction::where('transaction_type', 'REFERRAL_BONUS')->count(),
+            'TEAM_COMMISSION' => Transaction::where('transaction_type', 'TEAM_COMMISSION')->count(),
+            'WITHDRAWAL' => Transaction::where('transaction_type', 'WITHDRAWAL')->count(),
+        ];
+
         $settings = GlobalSetting::get();
 
         return Inertia::render('Admin/Transactions', [
             'transactions' => $transactions,
             'stats' => $stats,
+            'typeStats' => $typeStats,
             'currencySymbol' => $settings->currency_symbol ?? '₦',
             'settings' => $settings,
         ]);
@@ -56,6 +69,14 @@ class TransactionController extends Controller
 
         $user = $transaction->user;
 
+        // Handle different transaction types
+        if ($transaction->transaction_type === 'PLAN_UPGRADE') {
+            return $this->approvePlanUpgrade($transaction, $user);
+        }
+
+        // Original activation payment flow
+        $plan = \App\Models\Plan::find($transaction->metadata['plan_id']);
+
         // Activate user
         $user->update([
             'status' => 'ACTIVE',
@@ -64,10 +85,42 @@ class TransactionController extends Controller
             'activation_date' => now(),
         ]);
 
-        // Send notification
+        // Assign rank based on purchased plan
+        if ($plan) {
+            $user->assignRankFromPlan($plan);
+        }
+
+        // Generate TOS and Partnership PDFs for first activation
+        $attachments = [];
+
+        // Generate Terms and Conditions PDF
+        $tosPdfGenerator = new TermsAndConditionsPDF($user);
+        $tosPdfContent = $tosPdfGenerator->output();
+        $tosPdfPath = storage_path('app/temp/tos-' . $user->id . '.pdf');
+        if (!file_exists(dirname($tosPdfPath))) {
+            mkdir(dirname($tosPdfPath), 0755, true);
+        }
+        file_put_contents($tosPdfPath, $tosPdfContent);
+
+        $attachments[] = Attachment::fromPath($tosPdfPath)
+            ->as('Terms-and-Conditions.pdf')
+            ->withMime('application/pdf');
+
+        // Generate Partnership Agreement PDF
+        $partnershipPdfGenerator = new WelcomeContractPDF($user);
+        $partnershipPdfContent = $partnershipPdfGenerator->output();
+        $partnershipPdfPath = storage_path('app/temp/partnership-' . $user->id . '.pdf');
+        file_put_contents($partnershipPdfPath, $partnershipPdfContent);
+
+        $attachments[] = Attachment::fromPath($partnershipPdfPath)
+            ->as('Partnership-Agreement.pdf')
+            ->withMime('application/pdf');
+
+        // Send notification with PDFs
         app(NotificationService::class)->send($user, 'account_activated', [
             'plan_name' => $transaction->metadata['plan_name'],
             'amount' => $transaction->amount,
+            'attachments' => $attachments,
         ]);
 
         // Credit direct referrer with referral bonus
@@ -75,7 +128,7 @@ class TransactionController extends Controller
             $this->creditReferralBonus($user, $transaction);
         }
 
-        return back()->with('success', 'Payment approved! User activated.');
+        return back()->with('success', 'Payment approved! User activated with TOS & Partnership PDFs sent.');
     }
 
     public function reject(Request $request, $id)
@@ -218,5 +271,31 @@ class TransactionController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
         }
+    }
+
+    protected function approvePlanUpgrade(Transaction $transaction, $user)
+    {
+        $newPlanId = $transaction->metadata['new_plan_id'];
+        $newPlan = \App\Models\Plan::find($newPlanId);
+
+        if (!$newPlan) {
+            return back()->with('error', 'New plan not found.');
+        }
+
+        // Update user's plan
+        $user->update([
+            'plan_id' => $newPlanId,
+        ]);
+
+        // Update rank if needed
+        $user->assignRankFromPlan($newPlan);
+
+        // Send notification
+        app(NotificationService::class)->send($user, 'account_activated', [
+            'plan_name' => $transaction->metadata['new_plan_name'],
+            'amount' => $transaction->amount,
+        ]);
+
+        return back()->with('success', 'Plan upgrade approved! User upgraded to ' . $newPlan->display_name);
     }
 }

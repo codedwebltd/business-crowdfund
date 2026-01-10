@@ -23,8 +23,9 @@ class WithdrawalController extends Controller
 
     public function index()
     {
-        $withdrawals = Withdrawal::with('user')
+        $withdrawals = Withdrawal::with(['user', 'user.performance'])
             ->whereIn('status', ['PENDING', 'PROCESSING', 'COMPLETED', 'REJECTED'])
+            ->orderBy('priority_score', 'desc')
             ->latest()
             ->get();
 

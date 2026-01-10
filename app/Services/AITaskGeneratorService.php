@@ -143,7 +143,7 @@ class AITaskGeneratorService
                 'questions' => $surveyData['questions'],
                 'reward_amount' => rand($rewardRange['min'], $rewardRange['max']),
                 'completion_time_seconds' => count($surveyData['questions']) * 20, // ~20 seconds per question
-                'is_active' => false, // Admin must review and activate
+                'is_active' => true, // Admin must review and activate
                 'priority' => rand(1, 10),
                 'max_completions' => rand(500, 2000),
                 'min_rank_id' => null,
@@ -194,7 +194,7 @@ class AITaskGeneratorService
                     'questions' => $questions['questions'], // Verification questions
                     'reward_amount' => rand($rewardRange['min'], $rewardRange['max']),
                     'completion_time_seconds' => ($video['duration'] ?? 300) + 60, // Video + questions
-                    'is_active' => false,
+                    'is_active' => true,
                     'priority' => rand(1, 10),
                     'max_completions' => rand(300, 1000),
                     'min_rank_id' => null,
@@ -242,7 +242,7 @@ class AITaskGeneratorService
                 'required_data_points' => ['device_type', 'os_version', 'browser', 'screen_resolution', 'network_type'],
                 'reward_amount' => $syncReward,
                 'completion_time_seconds' => 60,
-                'is_active' => false,
+                'is_active' => true,
                 'priority' => rand(1, 10),
                 'max_completions' => rand(1000, 5000),
                 'min_rank_id' => null,
@@ -285,7 +285,7 @@ class AITaskGeneratorService
                 'review_min_characters' => 20,
                 'reward_amount' => rand($rewardRange['min'], $rewardRange['max']),
                 'completion_time_seconds' => 120,
-                'is_active' => false,
+                'is_active' => true,
                 'priority' => rand(1, 10),
                 'max_completions' => rand(200, 800),
                 'min_rank_id' => null,

@@ -37,9 +37,112 @@
         </div>
 
         <!-- Alerts Section -->
-        <div v-if="(testimonialRequired && user.wallet?.withdrawable_balance > 0) || kycRequired || !canWithdrawToday" class="space-y-3">
+        <div v-if="showAlertsSection" class="space-y-3">
+          <!-- Referral Threshold Not Met -->
+          <div v-if="showReferralThresholdUI" class="bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/30 rounded-xl p-5 shadow-lg">
+            <div class="flex items-start gap-4">
+              <!-- Animated Referral Icon -->
+              <div class="relative flex-shrink-0">
+                <div class="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-xl shadow-indigo-500/50">
+                  <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                  </svg>
+                </div>
+                <!-- Pulse animation -->
+                <div class="absolute inset-0 rounded-full bg-indigo-400 animate-ping opacity-20"></div>
+              </div>
+
+              <div class="flex-1">
+                <p class="text-indigo-400 font-bold text-lg mb-2 flex items-center gap-2">
+                  <span>Invite Friends to Unlock Withdrawals</span>
+                  <span class="inline-flex gap-0.5">
+                    <span class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                    <span class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                    <span class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                  </span>
+                </p>
+
+                <!-- Progress Bar -->
+                <div class="mb-3">
+                  <div class="flex justify-between text-sm mb-1">
+                    <span class="text-gray-300 font-medium">Active Referrals Progress</span>
+                    <span class="text-indigo-400 font-bold">{{ activeReferralsCount }}/{{ referralThreshold }}</span>
+                  </div>
+                  <div class="h-3 bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      class="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-500 ease-out relative overflow-hidden"
+                      :style="{ width: `${Math.min((activeReferralsCount / referralThreshold) * 100, 100)}%` }"
+                    >
+                      <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+                    </div>
+                  </div>
+                  <p class="text-gray-400 text-xs mt-1">
+                    You need {{ referralThreshold - activeReferralsCount }} more active {{ (referralThreshold - activeReferralsCount) === 1 ? 'referral' : 'referrals' }} to unlock withdrawals
+                  </p>
+                </div>
+
+                <p class="text-gray-300 text-sm mb-4">
+                  Share your referral link and help your friends join our platform! Once they activate their accounts by purchasing a plan, they'll count toward your referral threshold. 🚀
+                </p>
+
+                <!-- Referral Link -->
+                <div class="bg-indigo-500/20 rounded-lg p-3 border border-indigo-500/30 mb-3">
+                  <p class="text-indigo-300 text-xs mb-2 font-semibold">📎 Your Referral Link:</p>
+                  <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <input
+                      type="text"
+                      :value="`${settings.app_url}/register?ref=${user.referral_code}`"
+                      readonly
+                      class="flex-1 bg-gray-800 text-gray-200 px-3 py-2 rounded text-xs font-mono border border-gray-700 min-w-0 break-all"
+                    />
+                    <button
+                      @click="copyReferralLink"
+                      class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded transition whitespace-nowrap sm:w-auto w-full"
+                    >
+                      {{ copied ? '✓ Copied!' : 'Copy' }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Share Buttons -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <a
+                    :href="`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(settings.app_url + '/register?ref=' + user.referral_code)}`"
+                    target="_blank"
+                    class="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition shadow-lg hover:shadow-xl"
+                  >
+                    <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    <span class="truncate">Facebook</span>
+                  </a>
+                  <a
+                    :href="`https://www.instagram.com`"
+                    target="_blank"
+                    class="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm font-semibold rounded-lg transition shadow-lg hover:shadow-xl"
+                  >
+                    <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/>
+                    </svg>
+                    <span class="truncate">Instagram</span>
+                  </a>
+                  <a
+                    :href="`https://t.me/share/url?url=${encodeURIComponent(settings.app_url + '/register?ref=' + user.referral_code)}&text=${encodeURIComponent('Join me on ' + settings.app_name + ' and start earning!')}`"
+                    target="_blank"
+                    class="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-lg transition shadow-lg hover:shadow-xl"
+                  >
+                    <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                    </svg>
+                    <span class="truncate">Telegram</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Testimonial Required or Pending -->
-          <div v-if="testimonialRequired && user.wallet?.withdrawable_balance > 0" :class="[
+          <div v-if="testimonialRequired && user.wallet?.withdrawable_balance >= limits.min" :class="[
             'rounded-lg p-4',
             hasPendingTestimonial
               ? 'bg-purple-500/10 border border-purple-500/30'
@@ -98,7 +201,7 @@
           </div>
 
           <!-- KYC Approved Badge -->
-          <div v-if="user.latest_kyc?.status === 'APPROVED'" class="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg p-4">
+          <div v-if="user.latest_kyc?.status === 'APPROVED' && user.wallet?.withdrawable_balance >= limits.min" class="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg p-4">
             <div class="flex items-start gap-3">
               <div class="relative flex-shrink-0">
                 <!-- Instagram-style verification badge -->
@@ -130,7 +233,7 @@
           </div>
 
           <!-- KYC Required or Pending -->
-          <div v-else-if="kycRequired" :class="[
+          <div v-else-if="kycRequired && user.wallet?.withdrawable_balance >= limits.min" :class="[
             'rounded-lg p-4',
             user.latest_kyc?.status === 'PENDING'
               ? 'bg-blue-500/10 border border-blue-500/30'
@@ -223,7 +326,7 @@
         </div>
 
         <!-- Withdrawal Form -->
-        <div v-if="!testimonialRequired && !kycRequired && canWithdrawToday" class="space-y-6">
+        <div v-if="!testimonialRequired && !kycRequired && canWithdrawToday && referralThresholdMet" class="space-y-6">
 
           <!-- Amount Input Card -->
           <div class="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
@@ -554,6 +657,9 @@ const props = defineProps({
   bankEnabled: Boolean,
   cryptoEnabled: Boolean,
   twoFactorEnabled: Boolean,
+  referralThreshold: Number,
+  activeReferralsCount: Number,
+  referralThresholdMet: Boolean,
 });
 
 const loading = ref(false);
@@ -564,6 +670,19 @@ const loadingCryptoRate = ref(false);
 const cachedRate = ref(null);
 const cacheTimestamp = ref(null);
 const fetchTimeout = ref(null);
+const copied = ref(false);
+
+// Computed conditions
+const showAlertsSection = computed(() => {
+  return !props.referralThresholdMet || props.testimonialRequired || props.kycRequired || !props.canWithdrawToday;
+});
+
+const showReferralThresholdUI = computed(() => {
+  // Convert to numbers to avoid string comparison bug
+  const balance = Number(props.user?.wallet?.withdrawable_balance || 0);
+  const minAmount = Number(props.limits?.min || 0);
+  return props.referralThreshold > 0 && !props.referralThresholdMet && balance >= minAmount;
+});
 
 const withdrawalForm = ref({
   amount: null,
@@ -702,6 +821,28 @@ const formatMoney = (amount) => {
   }).format(amount);
 };
 
+const copyReferralLink = () => {
+  const link = `${props.settings.app_url}/register?ref=${props.user.referral_code}`;
+  navigator.clipboard.writeText(link).then(() => {
+    copied.value = true;
+    setTimeout(() => {
+      copied.value = false;
+    }, 2000);
+  }).catch(() => {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = link;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    copied.value = true;
+    setTimeout(() => {
+      copied.value = false;
+    }, 2000);
+  });
+};
+
 const submitWithdrawal = () => {
   loading.value = true;
   router.post('/withdrawal', withdrawalForm.value, {
@@ -781,3 +922,18 @@ const submitTestimonial = () => {
   });
 };
 </script>
+
+<style scoped>
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+</style>

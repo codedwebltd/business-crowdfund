@@ -17,7 +17,7 @@ class CleanupAndRegenerateTasksJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $timeout = 600; // 10 minutes
-    public $tries = 1;
+    public $tries = 3;
 
     public function __construct()
     {
@@ -32,7 +32,20 @@ class CleanupAndRegenerateTasksJob implements ShouldQueue
         Log::info('🧹 Starting nightly task cleanup and regeneration');
 
         try {
-            // Step 1: Delete all existing task templates
+            // SAFETY CHECK: Verify all UserTasks have expired before cleanup
+            // Check if ANY tasks (regardless of status) haven't expired yet
+            // Using exists() instead of count() - stops at first match (efficient for millions of records)
+            $hasUnexpiredTasks = \App\Models\UserTask::where('expires_at', '>', now())->exists();
+
+            if ($hasUnexpiredTasks) {
+                Log::warning("⚠️ Cleanup aborted! Found UserTasks that haven't expired yet.");
+                Log::warning("Cleanup should only run after all tasks expire (24hrs from assignment).");
+                return;
+            }
+
+            Log::info("✓ Safety check passed: All UserTasks have expired.");
+
+            // Step 1: Delete all existing task templates (CASCADE deletes expired UserTasks)
             $deletedCount = TaskTemplate::query()->delete();
             Log::info("✓ Deleted {$deletedCount} task templates");
 

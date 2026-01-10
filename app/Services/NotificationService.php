@@ -109,6 +109,7 @@ class NotificationService
     protected function getTitle(string $type, array $data): string
     {
         return match ($type) {
+            'account_activated' => '🎉 Account Activated!',
             'withdrawal_requested' => 'Withdrawal Request Received',
             'withdrawal_processing' => 'Withdrawal Being Processed',
             'withdrawal_approved' => 'Withdrawal Approved',
@@ -125,6 +126,10 @@ class NotificationService
             'kyc_rejected' => '❌ KYC Rejected',
             'kyc_pending_review' => '⏳ KYC Pending Review',
             'burn_rate_alert' => $data['subject'] ?? 'Platform Liquidity Alert',
+            'star_rating_promoted' => '🎉 Star Rating Promoted!' . ($data['new_stars'] == 5 ? ' 👑' : ''),
+            'star_rating_demoted' => '⚠️ Star Rating Update',
+            'payment_rejected' => '❌ Payment Rejected',
+            'plan_upgrade_available' => '🎁 Plan Upgrade Available!',
             default => 'Notification',
         };
     }
@@ -132,6 +137,7 @@ class NotificationService
     protected function getIcon(string $type, array $data = []): string
     {
         return match ($type) {
+            'account_activated' => '🎉',
             'withdrawal_requested' => '⏳',
             'withdrawal_processing' => '🔄',
             'withdrawal_approved' => '✅',
@@ -154,6 +160,10 @@ class NotificationService
                 'collapse_imminent' => '☠️',
                 default => '🔥',
             },
+            'star_rating_promoted' => ($data['new_stars'] ?? 0) == 5 ? '👑' : '⭐',
+            'star_rating_demoted' => '📉',
+            'payment_rejected' => '❌',
+            'plan_upgrade_available' => '🎁',
             default => '🔔',
         };
     }
@@ -225,6 +235,8 @@ class NotificationService
     protected function getSubject(string $type, array $data): string
     {
         return match ($type) {
+            'account_activated' => "🎉 Account Activated - Welcome to " . ($data['plan_name'] ?? 'the Platform') . "!",
+            'payment_rejected' => "Payment Rejected - Action Required",
             'withdrawal_requested' => "Withdrawal Request Received - ₦" . number_format($data['amount'] ?? 0),
             'withdrawal_processing' => "Withdrawal Being Processed - ₦" . number_format($data['amount'] ?? 0),
             'withdrawal_approved' => "Withdrawal Approved - ₦" . number_format($data['amount'] ?? 0),
@@ -241,6 +253,9 @@ class NotificationService
             'kyc_rejected' => "KYC Verification Rejected",
             'kyc_pending_review' => "KYC Pending Review",
             'burn_rate_alert' => $data['subject'] ?? 'Platform Liquidity Alert',
+            'star_rating_promoted' => "Star Rating Promoted to {$data['new_stars']}⭐" . (($data['new_stars'] ?? 0) == 5 ? " - General Rank Achieved! 👑" : ""),
+            'star_rating_demoted' => "Star Rating Update - Now {$data['new_stars']}⭐",
+            'plan_upgrade_available' => "Upgrade to " . ($data['qualified_plan_name'] ?? $data['qualified_plan'] ?? 'Premium') . " Plan - {$data['discount_percentage']}% Off!",
             default => "Notification from {$this->settings->app_name}",
         };
     }
@@ -251,6 +266,8 @@ class NotificationService
     protected function getMessage(string $type, array $data): string
     {
         return match ($type) {
+            'account_activated' => "Congratulations! Your account has been successfully activated with the " . ($data['plan_name'] ?? 'Premium') . " plan. Your payment of ₦" . number_format($data['amount'] ?? 0, 2) . " has been confirmed. You can now access all platform features and start earning! Check your email for your Terms of Service and Partnership Agreement documents. Welcome aboard!",
+            'payment_rejected' => "Your activation payment has been rejected. Reason: " . ($data['reason'] ?? 'Not specified') . ". Please contact support or submit a new payment proof.",
             'withdrawal_requested' => "Your withdrawal request for ₦" . number_format($data['amount'] ?? 0) . " has been received and is being processed. You will receive payment within " . ($this->settings->withdrawal_processing_times[$data['rank'] ?? 'bronze'] ?? '48-72 hours') . ".",
             'withdrawal_processing' => "Your withdrawal of ₦" . number_format($data['amount'] ?? 0) . " is now being actively processed by our team. Payment will be sent shortly.",
             'withdrawal_approved' => "Great news! Your withdrawal of ₦" . number_format($data['amount'] ?? 0) . " has been approved. Funds will be sent to your " . ($data['payment_method'] ?? 'bank') . " account shortly.",
@@ -264,7 +281,24 @@ class NotificationService
             'kyc_rejected' => "Your KYC verification was rejected. Reason: " . ($data['rejection_reason'] ?? 'Not specified') . ". Please resubmit with correct documents.",
             'kyc_pending_review' => $data['message'] ?? "Your KYC documents are under review. We'll notify you once the verification is complete.",
             'burn_rate_alert' => $data['message'] ?? "Platform liquidity alert for " . ($data['report_date'] ?? 'today') . ". Burn rate: " . ($data['burn_rate'] ?? 0) . ". Status: " . strtoupper($data['liquidity_status'] ?? 'unknown') . ". Please check the admin dashboard for details.",
+            'star_rating_promoted' => "Congratulations! " . str_repeat('⭐', $data['new_stars'] ?? 1) . " You've been promoted to {$data['new_stars']}-star rating" . ($data['new_stars'] == 5 ? " 👑 (General Rank)! Your withdrawals now have HIGHEST priority!" : "! Your withdrawal priority has increased. Keep up the excellent work!"),
+            'star_rating_demoted' => "Your star rating has dropped from {$data['old_stars']}⭐ to {$data['new_stars']}⭐. " . str_repeat('⭐', $data['new_stars'] ?? 1) . " Stay active by completing tasks and referring users to regain your rating!",
+            'plan_upgrade_available' => "🎉 Congratulations! " . str_repeat('⭐', $data['star_rating'] ?? 1) . " Based on your {$data['star_rating']}-star performance rating, you now qualify to upgrade to the " . ($data['qualified_plan_name'] ?? $data['qualified_plan'] ?? 'Premium') . " Plan! Special Offer: Get {$data['discount_percentage']}% OFF! Regular Price: ₦" . number_format($data['original_price'] ?? 0, 2) . " | Your Price: ₦" . number_format($data['discounted_price'] ?? 0, 2) . " | You Save: ₦" . number_format($data['savings'] ?? 0, 2) . "! Click on your dashboard to upgrade now!",
             default => $data['message'] ?? "You have a new notification.",
         };
+    }
+
+    /**
+     * Send star rating change notification
+     */
+    public function sendStarRatingChange(User $user, int $oldStars, int $newStars, string $changeType): array
+    {
+        $type = $changeType === 'promoted' ? 'star_rating_promoted' : 'star_rating_demoted';
+
+        return $this->send($user, $type, [
+            'old_stars' => $oldStars,
+            'new_stars' => $newStars,
+            'change_type' => $changeType,
+        ]);
     }
 }

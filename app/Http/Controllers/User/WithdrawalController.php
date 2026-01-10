@@ -34,20 +34,22 @@ class WithdrawalController extends Controller
                            isset($user->wallet_details['coin_name']) &&
                            isset($user->wallet_details['coin_network']);
 
-        // Get withdrawal limits based on plan and rank
-        $planLimits = $settings->withdrawal_limits_by_plan[$user->plan_id] ?? [
-            'min' => 1000,
-            'max' => 10000,
-            'per_day' => 1,
-        ];
+        // Get global withdrawal limits (baseline/override)
+        $globalMin = $settings->minimum_withdrawal ?? 1000;
+        $globalMax = $settings->maximum_withdrawal ?? 500000;
+        $globalPerDay = $settings->withdrawals_per_day ?? 1;
 
+        // Get rank-specific limits (if user has rank)
         $rankLimits = $user->rank ? ($settings->withdrawal_limits_by_rank[$user->rank_id] ?? null) : null;
 
-        // Use rank limits if better, otherwise use plan limits
+        // Apply stricter-wins logic: Global overrides when stricter
+        // - For minimum: Higher value is stricter (use MAX)
+        // - For maximum: Lower value is stricter (use MIN)
+        // - For per_day: Lower value is stricter (use MIN)
         $limits = [
-            'min' => $rankLimits['min'] ?? $planLimits['min'],
-            'max' => $rankLimits['max'] ?? $planLimits['max'],
-            'per_day' => $rankLimits['per_day'] ?? $planLimits['per_day'],
+            'min' => $rankLimits ? max($globalMin, $rankLimits['min']) : $globalMin,
+            'max' => $rankLimits ? min($globalMax, $rankLimits['max']) : $globalMax,
+            'per_day' => $rankLimits ? min($globalPerDay, $rankLimits['per_day'] ?? $globalPerDay) : $globalPerDay,
         ];
 
         // Check if KYC is required
@@ -75,6 +77,14 @@ class WithdrawalController extends Controller
         $tokenPrice = $settings->token_settings['token_price'] ?? 850;
         $withdrawalRate = $settings->withdrawal_rate ?? 1.0;
 
+        // Check referral threshold (active referrals with rank_id and status = ACTIVE)
+        $referralThreshold = $settings->referral_threshold ?? 0;
+        $activeReferralsCount = $user->referrals()
+            ->whereNotNull('rank_id')
+            ->where('status', 'ACTIVE')
+            ->count();
+        $referralThresholdMet = $referralThreshold == 0 || $activeReferralsCount >= $referralThreshold;
+
         return Inertia::render('User/Withdrawal', [
             'user' => $user,
             'settings' => $settings,
@@ -90,6 +100,9 @@ class WithdrawalController extends Controller
             'bankEnabled' => $settings->payment_gateways['bank_transfer']['enabled'] ?? false,
             'cryptoEnabled' => $settings->payment_gateways['crypto_transfer']['enabled'] ?? true,
             'twoFactorEnabled' => $user->google2fa_enabled ?? false,
+            'referralThreshold' => $referralThreshold,
+            'activeReferralsCount' => $activeReferralsCount,
+            'referralThresholdMet' => $referralThresholdMet,
         ]);
     }
 
@@ -126,6 +139,19 @@ class WithdrawalController extends Controller
 
         if ($kycRequired && (!$user->latestKyc || $user->latestKyc->status !== 'APPROVED')) {
             return back()->withErrors(['amount' => 'KYC verification is required before you can proceed with this withdrawal. Please complete your KYC verification.']);
+        }
+
+        // Check referral threshold
+        $referralThreshold = $settings->referral_threshold ?? 0;
+        if ($referralThreshold > 0) {
+            $activeReferralsCount = $user->referrals()
+                ->whereNotNull('rank_id')
+                ->where('status', 'ACTIVE')
+                ->count();
+
+            if ($activeReferralsCount < $referralThreshold) {
+                return back()->withErrors(['amount' => "You need {$referralThreshold} active referrals to withdraw. You currently have {$activeReferralsCount}. Invite more friends to unlock withdrawals!"]);
+            }
         }
 
         $originalAmount = $validated['amount'];
@@ -171,15 +197,17 @@ class WithdrawalController extends Controller
         ]);
 
         // Create transaction record for tracking
+        $currencySymbol = $settings->currency_symbol ?? '₦';
         Transaction::create([
             'user_id' => $user->id,
             'transaction_type' => 'WITHDRAWAL',
             'balance_type' => 'WITHDRAWABLE',
             'status' => 'PENDING',
+            'priority' => $user->getPriorityLevel(), // Set priority from user performance (1-5)
             'amount' => $finalAmount,
             'currency' => 'NGN',
             'is_credit' => false, // Debit transaction
-            'description' => "Withdrawal request via " . strtoupper($validated['method']) . " - ₦" . number_format($finalAmount, 2),
+            'description' => "Withdrawal request via " . strtoupper($validated['method']) . " - {$currencySymbol}" . number_format($finalAmount, 2),
             'reference_id' => $withdrawal->id,
             'reference_type' => 'App\Models\Withdrawal',
             'metadata' => [
@@ -226,8 +254,8 @@ class WithdrawalController extends Controller
                 \Mail::to($settings->support_email)->send(
                     new \App\Mail\GenericNotification(
                         $user,
-                        "New Withdrawal Request - ₦" . number_format($finalAmount, 2),
-                        "User {$user->full_name} (ID: {$user->id}) has requested a withdrawal of ₦" . number_format($finalAmount, 2) . " via {$validated['method']}.\n\nWithdrawal ID: {$withdrawal->id}\nPriority Score: {$withdrawal->priority_score}\nFirst Withdrawal: " . ($withdrawal->is_first_withdrawal ? 'Yes' : 'No'),
+                        "New Withdrawal Request - {$currencySymbol}" . number_format($finalAmount, 2),
+                        "User {$user->full_name} (ID: {$user->id}) has requested a withdrawal of {$currencySymbol}" . number_format($finalAmount, 2) . " via {$validated['method']}.\n\nWithdrawal ID: {$withdrawal->id}\nPriority Score: {$withdrawal->priority_score}\nFirst Withdrawal: " . ($withdrawal->is_first_withdrawal ? 'Yes' : 'No'),
                         $attachments
                     )
                 );

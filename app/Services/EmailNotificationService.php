@@ -103,6 +103,41 @@ class EmailNotificationService
         }
     }
 
+    public function sendAnnouncementEmail(User $user, $announcement): bool
+    {
+        if (!$this->settings->email_notifications_enabled) {
+            return false;
+        }
+
+        $prefs = $user->notification_preferences ?? [];
+        if (!($prefs['email'] ?? true)) {
+            return false;
+        }
+
+        try {
+            $typeColors = ['info' => '#3B82F6', 'success' => '#10B981', 'warning' => '#F59E0B', 'danger' => '#EF4444'];
+            $color = $typeColors[$announcement->type] ?? '#3B82F6';
+
+            $subject = "[{$announcement->type}] {$announcement->title}";
+
+            // Escape the message content for security
+            $message = e($announcement->message);
+
+            // Add link as properly formatted HTML (after escaping message)
+            if ($announcement->link_url) {
+                $safeUrl = e($announcement->link_url);
+                $safeLinkText = e($announcement->link_text);
+                $message .= "\n\n<a href=\"{$safeUrl}\" style=\"color: {$color}; font-weight: bold; text-decoration: none;\">{$safeLinkText}</a>";
+            }
+
+            Mail::to($user->email)->send(new \App\Mail\GenericNotification($user, $subject, $message, []));
+            return true;
+        } catch (\Exception $e) {
+            logger()->error("Failed to send announcement email to user {$user->id}: " . $e->getMessage());
+            return false;
+        }
+    }
+
     /**
      * Send SMS (placeholder - integrate with actual SMS provider)
      */

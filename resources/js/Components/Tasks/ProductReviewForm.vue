@@ -210,7 +210,15 @@ const startTime = ref(Date.now());
 const elapsedTime = ref(0);
 const timerInterval = ref(null);
 const minLength = ref(20);
-const minimumTime = ref(20000); // 20 seconds minimum
+
+// Get minimum time: Global settings -> Task template -> Default 20s
+const getMinimumTime = () => {
+  const globalMin = window.$page?.props?.settings?.task_validation_rules?.review_min_time;
+  const templateMin = props.task.task_template.min_completion_time;
+  return ((globalMin || templateMin || 20) * 1000); // Convert to milliseconds
+};
+
+const minimumTime = ref(getMinimumTime());
 
 const productName = computed(() => {
   return props.task.task_template.data?.product_name || props.task.task_template.title || 'Product';

@@ -18,10 +18,11 @@ class Kernel extends ConsoleKernel
         // Cleanup soft-deleted accounts after 30 days (runs daily at 2 AM)
         $schedule->command('cleanup:soft-deletes')->dailyAt('02:00');
 
-        // Cleanup and regenerate tasks nightly (runs at 3 AM daily - fresh tasks for the day)
-        $schedule->job(new \App\Jobs\CleanupAndRegenerateTasksJob)->dailyAt('03:00');
+        // ===== DAILY TASK CYCLE (FIXED SEQUENCE) =====
+        // 1. Cleanup old task templates at 11:59 PM (CASCADE deletes yesterday's expired UserTasks - expected!)
+        $schedule->job(new \App\Jobs\CleanupAndRegenerateTasksJob)->dailyAt('23:59');
 
-        // Assign daily tasks to all active users (runs at 12:01 AM daily)
+        // 2. Assign fresh tasks at 12:01 AM (after cleanup and regeneration)
         $schedule->command('tasks:assign-daily')->dailyAt('00:01');
 
         // Reset weekly task counters (every Monday at midnight)
@@ -42,6 +43,9 @@ class Kernel extends ConsoleKernel
 
         // Calculate daily burn rate for liquidity monitoring (runs daily at midnight)
         $schedule->command('liquidity:calculate-burn-rate')->dailyAt('00:01');
+
+        // Calculate star ratings for all active users (runs daily at 1:00 AM)
+        $schedule->command('performance:calculate')->dailyAt('01:00');
     }
 
     /**

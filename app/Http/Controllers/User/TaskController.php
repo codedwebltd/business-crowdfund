@@ -97,7 +97,32 @@ class TaskController extends Controller
 
         // Check 2: Bot Speed Detection (task completed too fast)
         $duration = $validated['duration'];
-        $minTime = $task->taskTemplate->completion_time_seconds ?? 30;
+
+        // Get minimum time based on task category to match frontend validation
+        $category = $task->taskTemplate->category;
+        if ($category === 'SURVEY') {
+            // Survey: Global settings -> Task template -> Default 30s
+            $minTime = $settings->task_validation_rules['survey_min_time']
+                ?? $task->taskTemplate->min_completion_time
+                ?? 30;
+        } elseif ($category === 'PRODUCT_REVIEW') {
+            // Product Review: Global settings -> Task template -> Default 20s
+            $minTime = $settings->task_validation_rules['review_min_time']
+                ?? $task->taskTemplate->min_completion_time
+                ?? 20;
+        } elseif ($category === 'VIDEO') {
+            // Video: Uses completion_time_seconds (watch time)
+            $minTime = $task->taskTemplate->completion_time_seconds ?? 60;
+        } elseif ($category === 'APP_SYNC') {
+            // App Sync: Uses sync_duration or completion_time_seconds
+            $data = is_string($task->taskTemplate->data) ? json_decode($task->taskTemplate->data, true) : $task->taskTemplate->data;
+            $minTime = ($data['sync_duration'] ?? null)
+                ?? $task->taskTemplate->completion_time_seconds
+                ?? 30;
+        } else {
+            // Default fallback
+            $minTime = $task->taskTemplate->min_completion_time ?? 30;
+        }
 
         if ($duration < $minTime) {
             // Get offense count
@@ -345,19 +370,21 @@ class TaskController extends Controller
             $wallet->increment('total_earned', $task->reward_amount);
 
             // Create transaction record
+            $maturationHours = $settings->earnings_maturation_hours ?? 72;
             $transaction = Transaction::create([
                 'user_id' => auth()->id(),
                 'transaction_type' => 'TASK_EARNING',
                 'balance_type' => 'PENDING',
                 'amount' => $task->reward_amount,
                 'status' => 'PENDING',
+                'priority' => auth()->user()->getPriorityLevel(), // Set priority from user performance
                 'is_credit' => true,
                 'description' => "Task completed: {$task->taskTemplate->title}",
                 'metadata' => [
                     'task_id' => $task->id,
                     'task_category' => $task->taskTemplate->category,
                     'completion_time' => $validated['duration'],
-                    'matures_at' => now()->addHours(72)->toDateTimeString() // 72 hour maturation
+                    'matures_at' => now()->addHours($maturationHours)->toDateTimeString()
                 ],
             ]);
 
@@ -380,17 +407,18 @@ class TaskController extends Controller
 
             // Send task completion notification to the user
             try {
+                $currencySymbol = $settings->currency_symbol ?? '₦';
                 $notificationService = app(\App\Services\NotificationService::class);
                 $notificationService->send($user, 'task_completed', [
                     'amount' => $task->reward_amount,
                     'task_name' => $task->taskTemplate->title,
-                    'message' => "You completed a task and earned ₦{$task->reward_amount}! It will be available after 72 hours.",
+                    'message' => "You completed a task and earned {$currencySymbol}{$task->reward_amount}! It will be available after {$maturationHours} hours.",
                 ]);
             } catch (\Exception $e) {
                 logger()->error("Failed to send task completion notification: " . $e->getMessage());
             }
 
-            return back()->with('success', "Task completed! ₦{$task->reward_amount} will be available after 72 hours.");
+            return back()->with('success', "Task completed! {$currencySymbol}{$task->reward_amount} will be available after {$maturationHours} hours.");
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -461,7 +489,8 @@ class TaskController extends Controller
                     'processed_at' => null, // Will be set when batch job processes
                 ]);
 
-                logger()->info("Commission recorded in ledger: ₦{$commissionAmount} for user {$uplineUserId} (Level {$level})");
+                $currencySymbol = $settings->currency_symbol ?? '₦';
+                logger()->info("Commission recorded in ledger: {$currencySymbol}{$commissionAmount} for user {$uplineUserId} (Level {$level})");
             }
 
             logger()->info("Commission distribution completed for task {$task->id}");

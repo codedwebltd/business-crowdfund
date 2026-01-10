@@ -11,7 +11,7 @@ class Transaction extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
-        'user_id', 'transaction_type', 'balance_type', 'status', 'amount',
+        'user_id', 'transaction_type', 'balance_type', 'status', 'priority', 'amount',
         'currency', 'is_credit', 'description', 'reference_id', 'reference_type',
         'processed_by', 'processed_at', 'metadata', 'transaction_hash',
     ];

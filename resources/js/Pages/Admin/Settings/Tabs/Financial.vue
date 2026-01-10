@@ -58,7 +58,7 @@
         <!-- Global Withdrawal Settings -->
         <div>
           <h3 class="text-sm font-bold text-gray-900 mb-3">Global Withdrawal Settings</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div>
               <label class="text-xs text-gray-600 mb-1 block flex items-center gap-1">
                 <span>Minimum Withdrawal</span>
@@ -79,6 +79,13 @@
                 <Tooltip text="Global maximum withdrawals allowed per day. Example: 1" />
               </label>
               <input v-model.number="form.withdrawals_per_day" type="number" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+            </div>
+            <div>
+              <label class="text-xs text-gray-600 mb-1 block flex items-center gap-1">
+                <span>Referral Threshold</span>
+                <Tooltip text="Minimum active referrals required to withdraw. Set to 0 to disable. Example: 3" />
+              </label>
+              <input v-model.number="form.referral_threshold" type="number" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
             </div>
           </div>
         </div>
@@ -202,6 +209,7 @@ const form = reactive({
   minimum_withdrawal: props.settings.minimum_withdrawal || 1000,
   maximum_withdrawal: props.settings.maximum_withdrawal || 500000,
   withdrawals_per_day: props.settings.withdrawals_per_day || 1,
+  referral_threshold: props.settings.referral_threshold || 0,
   withdrawal_processing_times: props.settings.withdrawal_processing_times || {}
 });
 

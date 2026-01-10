@@ -89,6 +89,7 @@
           <thead class="bg-gray-50 border-b-2 border-gray-200">
             <tr>
               <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">User</th>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Priority / Stars</th>
               <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Withdrawal ID</th>
               <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Amount</th>
               <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Method</th>
@@ -102,6 +103,18 @@
               <td class="px-6 py-5">
                 <div class="font-semibold text-gray-900 text-sm">{{ withdrawal.user?.full_name || 'Unknown' }}</div>
                 <div class="text-xs text-gray-500 mt-0.5">{{ withdrawal.user?.email || 'N/A' }}</div>
+              </td>
+              <td class="px-6 py-5">
+                <div class="flex flex-col gap-1.5">
+                  <span :class="getPriorityBadgeClass(withdrawal.user?.performance?.priority_level)"
+                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold w-fit">
+                    {{ getPriorityIcon(withdrawal.user?.performance?.priority_level) }} {{ getPriorityText(withdrawal.user?.performance?.priority_level) }}
+                  </span>
+                  <div class="flex items-center gap-1">
+                    <span class="text-sm">{{ getStarDisplay(withdrawal.user?.performance?.star_rating) }}</span>
+                    <span v-if="withdrawal.user?.performance?.star_rating === 5" class="text-sm">👑</span>
+                  </div>
+                </div>
               </td>
               <td class="px-6 py-5">
                 <div class="font-mono text-xs text-gray-900 font-bold max-w-[120px] truncate" :title="withdrawal.id">
@@ -386,6 +399,35 @@ const formatTime = (date) => new Date(date).toLocaleTimeString('en-US', {
   hour: '2-digit',
   minute: '2-digit'
 });
+
+const getStarDisplay = (stars) => {
+  if (!stars) return '⭐';
+  return '⭐'.repeat(stars);
+};
+
+const getPriorityIcon = (priority) => {
+  if (!priority) return '⚪';
+  const icons = { 5: '🔴', 4: '🟠', 3: '🟡', 2: '🔵', 1: '⚪' };
+  return icons[priority] || '⚪';
+};
+
+const getPriorityText = (priority) => {
+  if (!priority) return 'Very Low';
+  const texts = { 5: 'Urgent', 4: 'High', 3: 'Medium', 2: 'Low', 1: 'Very Low' };
+  return texts[priority] || 'Very Low';
+};
+
+const getPriorityBadgeClass = (priority) => {
+  if (!priority) return 'bg-gray-100 text-gray-700';
+  const classes = {
+    5: 'bg-red-100 text-red-700 border border-red-200',
+    4: 'bg-orange-100 text-orange-700 border border-orange-200',
+    3: 'bg-yellow-100 text-yellow-700 border border-yellow-200',
+    2: 'bg-blue-100 text-blue-700 border border-blue-200',
+    1: 'bg-gray-100 text-gray-600 border border-gray-200'
+  };
+  return classes[priority] || 'bg-gray-100 text-gray-700';
+};
 
 const viewWithdrawal = (withdrawal) => viewingWithdrawal.value = withdrawal;
 

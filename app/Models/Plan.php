@@ -13,7 +13,7 @@ class Plan extends Model
     protected $fillable = [
         'name', 'display_name', 'description', 'order',
         'price', 'currency', 'features', 'badge_color',
-        'icon', 'is_popular', 'is_active',
+        'icon', 'is_popular', 'is_active', 'rank_id',
     ];
 
     protected $casts = [
@@ -25,6 +25,7 @@ class Plan extends Model
     ];
 
     // Relationships
+    public function rank() { return $this->belongsTo(Rank::class); }
     public function users() { return $this->hasMany(User::class); }
     public function subscriptions() { return $this->hasMany(UserSubscription::class); }
     public function activeSubscriptions() { return $this->hasMany(UserSubscription::class)->where('status', 'ACTIVE'); }

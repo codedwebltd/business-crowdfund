@@ -38,6 +38,8 @@ import AppConfig from './Tabs/AppConfig.vue';
 import Referral from './Tabs/Referral.vue';
 import Tasks from './Tabs/Tasks.vue';
 import Ranks from './Tabs/Ranks.vue';
+import StarRatings from './Tabs/StarRatings.vue';
+import PlanUpgrades from './Tabs/PlanUpgrades.vue';
 import Financial from './Tabs/Financial.vue';
 import Fraud from './Tabs/Fraud.vue';
 import Security from './Tabs/Security.vue';
@@ -62,6 +64,8 @@ const tabs = [
   { id: 'tasks', name: 'Tasks', component: Tasks },
   { id: 'ai', name: 'AI Task Generation', component: AI },
   { id: 'ranks', name: 'Ranks', component: Ranks },
+  { id: 'star-ratings', name: 'Star Ratings', component: StarRatings },
+  { id: 'plan-upgrades', name: 'Plan Upgrades', component: PlanUpgrades },
   { id: 'financial', name: 'Financial', component: Financial },
   { id: 'token', name: 'Token & Liquidity', component: Token },
   { id: 'kyc', name: 'KYC & Testimonials', component: KYC },

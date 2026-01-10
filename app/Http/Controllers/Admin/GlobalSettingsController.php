@@ -96,6 +96,22 @@ class GlobalSettingsController extends Controller
         return back();
     }
 
+    public function updateStarRatings(Request $request)
+    {
+        GlobalSetting::first()->update($request->only([
+            'star_requirements'
+        ]));
+        return back();
+    }
+
+    public function updatePlanUpgrades(Request $request)
+    {
+        GlobalSetting::first()->update($request->only([
+            'plan_upgrade_discount_percentage'
+        ]));
+        return back();
+    }
+
     public function updateFinancial(Request $request)
     {
         GlobalSetting::first()->update($request->only([
@@ -106,6 +122,7 @@ class GlobalSettingsController extends Controller
             'minimum_withdrawal',
             'maximum_withdrawal',
             'withdrawals_per_day',
+            'referral_threshold',
             'withdrawal_processing_times'
         ]));
         return back();

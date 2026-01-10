@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('transaction_type')->index()->comment('TASK_EARNING, REFERRAL_BONUS, RANK_BONUS, WITHDRAWAL, MATURATION, ADJUSTMENT, PENALTY, etc.');
             $table->string('balance_type')->index()->comment('PENDING, WITHDRAWABLE, REFERRAL, BONUS, LOCKED, etc.');
             $table->string('status')->default('PENDING')->index()->comment('PENDING, COMPLETED, APPROVED, REJECTED, CANCELLED, etc.');
+            $table->tinyInteger('priority')->default(1)->index()->comment('1-5, from user star rating (5=highest)');
 
             // Amount
             $table->decimal('amount', 15, 2)->index();

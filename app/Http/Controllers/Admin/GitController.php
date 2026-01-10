@@ -362,22 +362,62 @@ class GitController extends Controller
                 ], 500);
             }
 
-            // Prepare prompt for Groq
-            $prompt = "You are a Git commit message expert. Analyze the following git changes and generate a concise, meaningful commit message following conventional commit format.\n\n";
-            $prompt .= "File Status:\n" . $statusSummary . "\n\n";
+            // Parse status to get changed files with context
+            $changedFiles = [];
+            $statusLines = array_filter(explode("\n", trim($statusSummary)));
+            foreach ($statusLines as $line) {
+                if (preg_match('/^(M|A|D|R|C|\?\?)\s+(.+)$/', trim($line), $matches)) {
+                    $status = $matches[1];
+                    $file = $matches[2];
 
-            if (!empty($stagedDiff)) {
-                // Truncate diff if too long (max 3000 chars)
-                $diffPreview = strlen($stagedDiff) > 3000 ? substr($stagedDiff, 0, 3000) . "\n...(truncated)" : $stagedDiff;
-                $prompt .= "Git Diff:\n" . $diffPreview . "\n\n";
+                    $statusLabel = match($status) {
+                        'M' => 'Modified',
+                        'A' => 'Added',
+                        'D' => 'Deleted',
+                        'R' => 'Renamed',
+                        'C' => 'Copied',
+                        '??' => 'Untracked',
+                        default => 'Changed'
+                    };
+
+                    $changedFiles[] = "{$statusLabel}: {$file}";
+                }
             }
 
-            $prompt .= "Generate a single commit message (50-80 characters) that:\n";
-            $prompt .= "1. Starts with a type: feat, fix, docs, style, refactor, test, or chore\n";
-            $prompt .= "2. Describes WHAT changed, not HOW\n";
-            $prompt .= "3. Uses imperative mood (e.g., 'Add feature' not 'Added feature')\n";
-            $prompt .= "4. Is clear and specific\n\n";
-            $prompt .= "Return ONLY the commit message, nothing else.";
+            // Prepare enhanced prompt for Groq with better context
+            $prompt = "You are an expert Git commit message generator. Your task is to analyze code changes and generate a highly descriptive, meaningful commit message.\n\n";
+
+            $prompt .= "=== CHANGED FILES ===\n";
+            $prompt .= implode("\n", $changedFiles) . "\n\n";
+
+            if (!empty($stagedDiff)) {
+                // Increased limit to 8000 chars for better context
+                $diffPreview = strlen($stagedDiff) > 8000 ? substr($stagedDiff, 0, 8000) . "\n...(diff truncated for brevity)" : $stagedDiff;
+                $prompt .= "=== CODE CHANGES (GIT DIFF) ===\n" . $diffPreview . "\n\n";
+            }
+
+            $prompt .= "=== INSTRUCTIONS ===\n";
+            $prompt .= "Analyze the above changes carefully and generate a commit message that:\n\n";
+            $prompt .= "1. STARTS with a conventional commit type prefix:\n";
+            $prompt .= "   - feat: New feature or significant enhancement\n";
+            $prompt .= "   - fix: Bug fix or error correction\n";
+            $prompt .= "   - update: Updates to existing features (UI improvements, minor changes)\n";
+            $prompt .= "   - refactor: Code restructuring without behavior change\n";
+            $prompt .= "   - docs: Documentation changes\n";
+            $prompt .= "   - style: Formatting, styling (CSS, UI)\n";
+            $prompt .= "   - perf: Performance improvements\n";
+            $prompt .= "   - test: Adding or updating tests\n";
+            $prompt .= "   - chore: Maintenance tasks, dependency updates\n\n";
+            $prompt .= "2. DESCRIBES the actual business/functional change, not technical implementation\n";
+            $prompt .= "   - Good: 'Add crypto withdrawal tracking feature'\n";
+            $prompt .= "   - Bad: 'Update files' or 'Change code'\n\n";
+            $prompt .= "3. USES imperative mood (Add/Fix/Update, not Added/Fixed/Updated)\n\n";
+            $prompt .= "4. IS SPECIFIC about what changed:\n";
+            $prompt .= "   - Mention the feature/component affected\n";
+            $prompt .= "   - Include key functionality added or fixed\n";
+            $prompt .= "   - Be clear and descriptive\n\n";
+            $prompt .= "5. KEEPS length between 50-100 characters\n\n";
+            $prompt .= "IMPORTANT: Return ONLY the commit message, no quotes, no explanations, no extra text.";
 
             // Call Groq API
             $response = Http::timeout(30)
@@ -390,15 +430,15 @@ class GitController extends Controller
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => 'You are a Git commit message expert. Generate concise, conventional commit messages.'
+                            'content' => 'You are an expert Git commit message generator. You analyze code changes deeply and create highly descriptive, meaningful commit messages that clearly communicate what changed and why. You follow conventional commit format and best practices.'
                         ],
                         [
                             'role' => 'user',
                             'content' => $prompt
                         ]
                     ],
-                    'temperature' => $aiConfig['temperature'] ?? 0.7,
-                    'max_tokens' => 2000,
+                    'temperature' => $aiConfig['temperature'] ?? 0.5,
+                    'max_tokens' => 3000,
                 ]);
 
             if (!$response->successful()) {

@@ -87,6 +87,7 @@ class GlobalSetting extends Model
         'minimum_withdrawal',
         'maximum_withdrawal',
         'withdrawals_per_day',
+        'referral_threshold',
 
         // Mail Settings
         'mail_mailer',
@@ -120,6 +121,12 @@ class GlobalSetting extends Model
         'recaptcha_secret_key',
         'recaptcha_enabled',
         'recaptcha_trigger_on_fraud',
+
+        // Star Rating System
+        'star_requirements',
+
+        // Plan Upgrade System
+        'plan_upgrade_discount_percentage',
     ];
 
     protected $casts = [
@@ -142,6 +149,10 @@ class GlobalSetting extends Model
         'token_settings' => 'array',
         'kyc_requirements' => 'array',
         'ai_configuration' => 'array',
+        'star_requirements' => 'array',
+
+        // Decimal columns
+        'plan_upgrade_discount_percentage' => 'decimal:2',
 
         // Boolean columns
         'ai_task_generation_enabled' => 'boolean',
@@ -170,6 +181,7 @@ class GlobalSetting extends Model
         'total_members' => 'integer',
         'daily_earning_average' => 'integer',
         'withdrawals_per_day' => 'integer',
+        'referral_threshold' => 'integer',
         'ai_generation_frequency_hours' => 'integer',
         'min_task_templates_threshold' => 'integer',
     ];

@@ -272,6 +272,7 @@ return new class extends Migration
             $table->decimal('minimum_withdrawal', 15, 2)->default(5000);
             $table->decimal('maximum_withdrawal', 15, 2)->default(50000);
             $table->integer('withdrawals_per_day')->default(1);
+            $table->integer('referral_threshold')->default(0)->comment('Minimum active referrals required to withdraw (0 = disabled)');
 
             // ==================== MAIL SETTINGS ====================
             $table->string('mail_mailer')->default('smtp');

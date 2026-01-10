@@ -12,7 +12,15 @@
         </div>
       </div>
       <h1 class="text-2xl md:text-3xl font-bold text-white mb-2">Complete Your Payment</h1>
-      <p class="text-gray-400">{{ plan.display_name }} - {{ formatCurrency(plan.price) }}</p>
+      <p class="text-gray-400">
+        {{ plan.display_name }} -
+        <span v-if="isUpgrade && discountedPrice">
+          <span class="line-through text-gray-500">{{ formatCurrency(originalPrice) }}</span>
+          <span class="text-green-400 font-bold ml-2">{{ formatCurrency(discountedPrice) }}</span>
+          <span class="text-xs text-green-400 ml-1">({{ discountPercentage }}% OFF)</span>
+        </span>
+        <span v-else>{{ formatCurrency(plan.price) }}</span>
+      </p>
     </div>
 
 
@@ -73,9 +81,9 @@
               <div class="flex justify-between items-center gap-4">
                 <div class="flex-1">
                   <p class="text-xs text-purple-300">Amount</p>
-                  <p class="text-white font-bold text-xl">{{ formatCurrency(plan.price) }}</p>
+                  <p class="text-white font-bold text-xl">{{ formatCurrency(amountToPay) }}</p>
                 </div>
-                <button @click="copyToClipboard(plan.price)" class="px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg text-xs text-purple-200">
+                <button @click="copyToClipboard(amountToPay)" class="px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg text-xs text-purple-200">
                   Copy
                 </button>
               </div>
@@ -183,7 +191,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import UserLayout from '@/Layouts/UserLayout.vue';
 
@@ -194,10 +202,22 @@ const props = defineProps({
   currencySymbol: String,
   cryptoConversion: Object,
   existingTransaction: Boolean,
+  isUpgrade: {
+    type: Boolean,
+    default: false
+  },
+  discountPercentage: Number,
+  originalPrice: Number,
+  discountedPrice: Number,
 });
 
 const processing = ref(false);
 const copied = ref(false);
+
+// Get the actual amount to pay (discounted price for upgrades)
+const amountToPay = computed(() => {
+  return props.isUpgrade && props.discountedPrice ? props.discountedPrice : props.plan.price;
+});
 
 const formatCurrency = (amount) => {
   return (props.currencySymbol || '₦') + parseFloat(amount).toLocaleString();
@@ -207,7 +227,7 @@ const generateQRCode = (account) => {
   let qrData = '';
 
   if (props.paymentMethod === 'bank_transfer') {
-    qrData = `Bank: ${account.bank_name}\nAccount: ${account.account_number}\nName: ${account.account_name}\nAmount: ${props.plan.price}`;
+    qrData = `Bank: ${account.bank_name}\nAccount: ${account.account_number}\nName: ${account.account_name}\nAmount: ${amountToPay.value}`;
   } else {
     qrData = account.address;
   }
@@ -227,7 +247,11 @@ const copyToClipboard = async (text) => {
 
 const confirmPayment = () => {
   processing.value = true;
-  router.post('/payment/confirm', {}, {
+
+  // Use different endpoint for upgrades vs regular activation
+  const endpoint = props.isUpgrade ? '/plan/upgrade/confirm' : '/payment/confirm';
+
+  router.post(endpoint, {}, {
     onFinish: () => processing.value = false,
   });
 };

@@ -33,7 +33,7 @@
                             </p>
 
                             <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #cbd5e1;">
-                                {!! nl2br(e($messageContent)) !!}
+                                {!! nl2br($messageContent) !!}
                             </p>
 
                             @if(isset($actionUrl) && isset($actionButtonText))

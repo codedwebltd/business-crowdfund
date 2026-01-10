@@ -33,8 +33,8 @@ class AssignDailyTasks extends Command
         $dailyLimits = $settings->daily_task_limits ?? ['basic' => 8, 'premium' => 15, 'vip' => 25];
         $distribution = $settings->task_distribution_percentages ?? ['SURVEY' => 60, 'VIDEO' => 20, 'APP_SYNC' => 15, 'PRODUCT_REVIEW' => 5];
 
-        // Get all active users
-        $users = User::where('status', 'active')->get();
+        // Get all active users with their performance data
+        $users = User::where('status', 'active')->with('performance')->get();
 
         $this->info("Found {$users->count()} active users");
         $this->newLine();
@@ -77,21 +77,38 @@ class AssignDailyTasks extends Command
 
                 $taskTemplateIds = [];
 
+                // Get user's star rating for performance-based task assignment
+                $starRating = $user->performance->star_rating ?? 3; // Default to 3-star (medium)
+
                 // Collect tasks by category for batch job
                 foreach ($taskCount as $category => $count) {
                     if ($count <= 0) continue;
 
-                    // Get available tasks for this category (from map.md: check rank, random selection)
-                    $templates = TaskTemplate::active()
+                    // Build base query for available tasks in this category
+                    $query = TaskTemplate::active()
                         ->available()
                         ->byCategory($category)
                         ->where(function($q) use ($user) {
                             $q->whereNull('min_rank_id')
                               ->orWhere('min_rank_id', '<=', $user->rank_id ?? 1);
-                        })
-                        ->inRandomOrder()
-                        ->limit($count)
-                        ->get();
+                        });
+
+                    // Performance-based task assignment:
+                    // High performers (4-5 stars) get highest value tasks
+                    // Medium performers (3 stars) get random tasks (maintain current behavior)
+                    // Low performers (1-2 stars) get lower value tasks
+                    if ($starRating >= 4) {
+                        // High performers: prioritize highest rewards
+                        $query->orderBy('reward_amount', 'DESC');
+                    } elseif ($starRating <= 2) {
+                        // Low performers: get lower value tasks
+                        $query->orderBy('reward_amount', 'ASC');
+                    } else {
+                        // Medium performers (3-star): random selection
+                        $query->inRandomOrder();
+                    }
+
+                    $templates = $query->limit($count)->get();
 
                     foreach ($templates as $template) {
                         $taskTemplateIds[] = $template->id;

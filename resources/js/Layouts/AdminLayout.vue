@@ -192,25 +192,26 @@
     <div class="lg:ml-64 min-h-screen flex flex-col">
       <!-- Header -->
       <header class="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-200">
-        <div class="px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div class="flex items-center gap-3">
-            <button @click="sidebarOpen = true" class="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-              </svg>
-            </button>
-            <h2 class="text-xl sm:text-2xl font-bold text-gray-900">{{ title }}</h2>
-          </div>
-          <div class="flex items-center gap-2 sm:gap-4">
-            <Link href="/dashboard" class="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="View User Site">
-              <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-              </svg>
-            </Link>
+        <div class="px-4 sm:px-6 lg:px-8 py-4">
+          <div class="flex justify-between items-center mb-3">
+            <div class="flex items-center gap-3">
+              <button @click="sidebarOpen = true" class="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+              </button>
+              <h2 class="text-xl sm:text-2xl font-bold text-gray-900">{{ title }}</h2>
+            </div>
+            <div class="flex items-center gap-2 sm:gap-4">
+              <Link href="/dashboard" class="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="View User Site">
+                <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              </Link>
 
-            <!-- User Dropdown -->
-            <div class="relative">
+              <!-- User Dropdown -->
+              <div class="relative">
               <button
                 @click="userMenuOpen = !userMenuOpen"
                 class="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
@@ -243,8 +244,12 @@
                   </div>
                 </div>
               </Transition>
+              </div>
             </div>
           </div>
+
+          <!-- Breadcrumbs -->
+          <Breadcrumbs v-if="breadcrumbs && breadcrumbs.length" :crumbs="breadcrumbs" class="mt-3" />
         </div>
       </header>
 
@@ -269,12 +274,17 @@
 import { ref, reactive, computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import AdminNavLink from '@/Components/Admin/AdminNavLink.vue';
+import Breadcrumbs from '@/Components/Breadcrumbs.vue';
 
 const props = defineProps({
   title: String,
   settings: {
     type: Object,
     default: () => ({ app_name: 'CrowdPower' })
+  },
+  breadcrumbs: {
+    type: Array,
+    default: () => []
   }
 });
 

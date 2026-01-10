@@ -79,7 +79,26 @@ class PaymentController extends Controller
             ->where('user_id', $user->id)
             ->firstOrFail();
 
-        $plan = Plan::findOrFail($transaction->metadata['plan_id']);
+        // ✅ KEY FIX: Handle both ACTIVATION_PAYMENT and PLAN_UPGRADE transactions
+        if ($transaction->transaction_type === 'PLAN_UPGRADE') {
+            // For upgrade transactions, use new_plan_id or fall back to reference_id
+            $planId = $transaction->metadata['plan_id'] ?? $transaction->metadata['new_plan_id'] ?? $transaction->reference_id;
+            $plan = Plan::findOrFail($planId);
+
+            // For upgrades, we need to show the discounted price
+            $amount = $transaction->metadata['discounted_price'] ?? $transaction->amount;
+            $isUpgrade = true;
+            $discountPercentage = $transaction->metadata['discount_percentage'] ?? 0;
+            $originalPrice = $transaction->metadata['original_price'] ?? $plan->price;
+        } else {
+            // For activation payments, use plan_id from metadata
+            $plan = Plan::findOrFail($transaction->metadata['plan_id']);
+            $amount = $plan->price;
+            $isUpgrade = false;
+            $discountPercentage = null;
+            $originalPrice = null;
+        }
+
         $method = $transaction->metadata['payment_method'];
 
         // Get payment accounts
@@ -93,10 +112,19 @@ class PaymentController extends Controller
         // Get crypto conversion if crypto payment
         $cryptoConversion = null;
         if ($method === 'crypto_transfer') {
-            $cryptoConversion = [
-                'usdtAmount' => \App\Helpers\CurrencyHelper::toUSDT($plan->price),
-                'conversionDisplay' => \App\Helpers\CurrencyHelper::getConversionDisplay($plan->price),
-            ];
+            // ✅ FIX: Use stored crypto data from transaction metadata if available
+            if (isset($transaction->metadata['crypto_amount'])) {
+                $cryptoConversion = [
+                    'usdtAmount' => $transaction->metadata['crypto_amount'],
+                    'conversionDisplay' => $transaction->metadata['conversion_display'] ?? \App\Helpers\CurrencyHelper::getConversionDisplay($amount),
+                ];
+            } else {
+                // Fallback to calculating it
+                $cryptoConversion = [
+                    'usdtAmount' => \App\Helpers\CurrencyHelper::toUSDT($amount),
+                    'conversionDisplay' => \App\Helpers\CurrencyHelper::getConversionDisplay($amount),
+                ];
+            }
         }
 
         return Inertia::render('Payment/PaymentPage', [
@@ -106,6 +134,10 @@ class PaymentController extends Controller
             'currencySymbol' => $settings->currency_symbol ?? '₦',
             'cryptoConversion' => $cryptoConversion,
             'existingTransaction' => true, // Flag to hide "I Have Paid" button
+            'isUpgrade' => $isUpgrade,
+            'discountPercentage' => $discountPercentage,
+            'originalPrice' => $originalPrice,
+            'discountedPrice' => $isUpgrade ? $amount : null,
         ]);
     }
 

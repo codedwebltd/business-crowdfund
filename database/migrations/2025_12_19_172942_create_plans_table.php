@@ -36,6 +36,10 @@ return new class extends Migration
             // Status
             $table->boolean('is_active')->default(true)->index();
 
+            // Rank Assignment
+            $table->unsignedBigInteger('rank_id')->nullable()->comment('Rank to assign when user purchases this plan');
+            $table->foreign('rank_id')->references('id')->on('ranks')->onDelete('set null');
+
             $table->timestamps();
 
             // Indexes
