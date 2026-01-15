@@ -1,0 +1,472 @@
+================================================================================
+MATRIFUNDS THEME STUDY - /home/versaascloud/public_html/resources/views/themes/Matrifunds/
+================================================================================
+
+## VIDEO BACKGROUND SECTION (Key Feature)
+Located in index.blade.php (lines 512-540)
+
+```html
+<section style="height: 80vh_; min-height: 400px; object-fit: cover;"
+         class="section-video text-light d-flex-center"
+         data-bg-video="{{ asset('themes/Matrifunds/site-images/vid.mp4') }}">
+
+    <!-- HTML5 Video Element -->
+    <div class="html5vid video-loaded" id="video-rpptn">
+        <video playsinline
+               style="object-fit: cover;"
+               autoplay
+               loop
+               muted="true"
+               poster="{{ asset('themes/Matrifunds/site-images/konsulting_bull_reverse.jpg') }}"
+               preload="auto">
+            <source src="{{ asset('themes/Matrifunds/site-images/bg-chc.mp4') }}" type="video/mp4">
+        </video>
+    </div>
+
+    <!-- Dark Overlay -->
+    <div class="bg-overlay yuwjw7jjjk" style="opacity: .5 !important; background-color: #01123c; !important;">
+    </div>
+
+    <!-- Content Container (Centered) -->
+    <div class="container container-fullscreen">
+        <div class="text-middle text-center text-light">
+            <h1>...</h1>
+            <p class="lead">...</p>
+            <a href="{{ route('register') }}" class="btn">Get Started</a>
+        </div>
+    </div>
+</section>
+```
+
+### Key Styling Features:
+- Uses `section-video` class for video background sections
+- `d-flex-center` for centering content
+- Video: autoplay, loop, muted, playsinline (mobile compatible)
+- Poster image as fallback: konsulting_bull_reverse.jpg
+- Dark overlay (#01123c at 50% opacity) for text readability
+- `text-middle text-center text-light` for centered white text
+- Minimum height: 400px, target: 80vh
+
+--------------------------------------------------------------------------------
+
+## HEADER STRUCTURE (authinc/header.blade.php)
+
+### Framework:
+- Uses custom "INSPIRO" theme framework
+- Dark header with transparent background: `data-transparent="true"` `data-fullwidth="true"` `class="dark submenu-light"`
+
+### CSS Libraries:
+- imported-css.css
+- plugins.css
+- style.css
+- general.css
+- Font Awesome 4.7.0
+
+### Fonts:
+- 'Lora' (serif) - for headings, links
+- 'Raleway' (sans-serif) - for paragraphs, spans, divs
+- 'Mulish' - also loaded
+
+### Navigation Structure:
+```html
+<header id="header" data-transparent="true" data-fullwidth="true" class="dark submenu-light">
+    <div class="header-inner">
+        <div class="container">
+            <div id="logo">...</div>
+            <div id="mainMenu-trigger">
+                <a class="lines-button x"><span class="lines"></span></a>
+            </div>
+            <div id="mainMenu">
+                <nav>
+                    <ul>
+                        <li><a href="/">Home</a></li>
+                        <li class="dropdown"><a href="#">Our Company</a>
+                            <ul class="dropdown-menu">...</ul>
+                        </li>
+                        ...
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+```
+
+### Logo Styling:
+- .logo-dark img: 260px x 42px, object-fit: contain
+- .logo-default img: 240px width
+
+--------------------------------------------------------------------------------
+
+## FOOTER STRUCTURE (authinc/footer.blade.php)
+
+### Layout (3 columns):
+1. **Contact Info** (col-lg-4):
+   - World map dark background image
+   - Address, email, hours list with icons
+
+2. **Quick Links** (col-lg-3):
+   - Home, Login, Register, Contact links
+
+3. **About Text** (col-lg-5):
+   - Company description paragraph
+
+### Fake Activity Popup:
+```javascript
+// Random popup showing "Someone from [Country] just traded with [Amount]"
+var listCountries = ['United Kingdom', 'USA', 'Germany', ...];
+var listPlans = ['$5000', '$5450', '$10000', ...];
+// Interval: 8000-40000ms random
+```
+
+### Copyright Section:
+- Social icons (left)
+- Copyright text (right): "2016 {{ env('APP_NAME') }}. All Rights Reserved."
+
+### JS Libraries:
+- plugins.js
+- particles/particles.js
+- particles/particles-dots.js
+- functions.js
+- imported-js.js
+- UIKit (indonez.min.js, uikit.min.js, config-theme.js)
+- customscript.js
+- livechat include
+
+--------------------------------------------------------------------------------
+
+## PAGE SECTIONS OVERVIEW (index.blade.php)
+
+1. **Hero Slider** (inspiro-slider) - Kenburns effect, 3 slides with overlays
+2. **TradingView Ticker Tape** - Crypto prices widget
+3. **Company Intro Section** - Dark bg (#01123c), logo, description
+4. **Investment Info** - Two-column layout with image
+5. **"As Seen On" Logos** - Client logos carousel
+6. **Mining Hardware Carousel** - Products from $minners variable
+7. **Statistics Section** - Counters ($70M+, 15M+, etc.) with YouTube embed
+8. **Investment Platform Section** - $100 minimum investment highlight
+9. **VIDEO BACKGROUND SECTION** - Key sleek video section (studied above)
+10. **Tax-Free Section** - UK ISA information
+11. **Team Section** - Testimonial-style carousel (COO, Secretary, CCO, IT)
+12. **"Built For You" CTA** - Card with background image
+13. **Our Investors Logos** - Carousel of crypto logos
+14. **Professional Managers Section** - Card with mockup background
+15. **Security Section** - Two-column with illustrations
+16. **Final CTA Section** - Full-screen parallax with dark overlay
+
+--------------------------------------------------------------------------------
+
+## COLOR SCHEME:
+- Primary Dark: #01123c (midnight blue)
+- Overlay Blue: midnightblue
+- Text Light: #fff
+- Accent: uk-button-primary (UIKit)
+
+## KEY CSS CLASSES:
+- .section-video - Video background sections
+- .bg-overlay - Dark overlay for text contrast
+- .text-light - White text
+- .d-flex-center - Flexbox centering
+- .container-fullscreen - Full viewport container
+- .text-middle - Vertical centering
+- .tup - text-transform: uppercase
+- .theme-bg - Theme background color
+- .kenburns - Ken Burns zoom effect on sliders
+
+================================================================================
+END OF MATRIFUNDS STUDY
+================================================================================
+
+
+
+================================================================================
+HORIZONCAPITALLC.COM THEME STUDY - Hero/Slider Section
+================================================================================
+Source: https://horizoncapitallc.com
+Assets URL: https://horizoncapitallc.com/assets/img/slider/slider_01.jpg
+
+## CSS LIBRARIES (Head Section)
+```html
+<link rel="stylesheet" href="assets/css/bootstrap.min.css">
+<link rel="stylesheet" href="assets/css/fontawesome.css">
+<link rel="stylesheet" href="assets/css/animate.css">
+<link rel="stylesheet" href="assets/css/swiper.min.css">
+<link rel="stylesheet" href="assets/css/odometer.css">
+<link rel="stylesheet" href="assets/css/nice-select.css">
+<link rel="stylesheet" href="assets/css/aos.css">
+<link rel="stylesheet" href="assets/css/jquery-ui.min.css">
+<link rel="stylesheet" href="assets/css/magnific-popup.css">
+<link rel="stylesheet" href="assets/css/rs6.css">         <!-- Revolution Slider 6 -->
+<link rel="stylesheet" href="assets/css/main.css">
+```
+
+## FONTS
+- **Poppins** - Headings (font-weight: 500, font-size: 68px desktop)
+- **DM Sans** - Body text, buttons (font-weight: 500-700)
+
+## COLOR SCHEME
+- **Background**: #03080b (near black)
+- **Accent/Highlight**: #ccff86 (lime green) - for stats numbers
+- **Text Muted**: #838788 (gray)
+- **Button Dark**: btn-dark class
+- **Border**: #222528 (dark gray)
+
+--------------------------------------------------------------------------------
+
+## HEADER STRUCTURE
+
+```html
+<header id="xb-header-area" class="site-header header-business is-sticky">
+  <div class="xb-header__wrap xb-header-has-arrow xb-header">
+    <div class="container mxw_1710">
+      <div class="ul_li_between">
+        <!-- Logo -->
+        <div class="xb-header__logo">
+          <a href="?a=home"><img src="assets/img/logo/logo4.svg" alt=""></a>
+        </div>
+
+        <!-- Main Menu (Desktop) -->
+        <div class="main-menu__wrap ul_li navbar navbar-expand-lg">
+          <nav class="main-menu collapse navbar-collapse">
+            <ul>
+              <li><a href="?a=home"><span>Home</span></a></li>
+              <li><a href="?a=about"><span>About Us</span></a></li>
+              <li><a href="?a=faq"><span>FAQs</span></a></li>
+              <li><a href="?a=support"><span>Contact</span></a></li>
+            </ul>
+          </nav>
+        </div>
+
+        <!-- CTA Button -->
+        <div class="xb-header__btn d-none d-lg-block">
+          <a class="xb-btn xb-btn--business btn-dark" href="?a=account">
+            <div class="btn-anim-wrap">
+              <span class="button-text">ACCOUNT</span>
+              <span class="button-text">ACCOUNT</span>  <!-- Duplicate for hover animation -->
+            </div>
+          </a>
+        </div>
+
+        <!-- Mobile Hamburger -->
+        <div class="xb-hamburger-menu">
+          <div class="xb-nav-mobile">
+            <div class="xb-nav-mobile-button btn-white"><i class="fal fa-bars"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+```
+
+### Key Header Features:
+- Sticky header: `is-sticky` class
+- Container max-width: 1710px (`mxw_1710`)
+- Flexbox layout: `ul_li_between` (justify-content: space-between)
+- SVG logo
+- Animated button with duplicate text for hover effect
+
+--------------------------------------------------------------------------------
+
+## HERO SLIDER - REVOLUTION SLIDER 6
+
+### Structure Overview:
+```html
+<rs-module-wrap id="rev_slider_2_1_wrapper"
+    data-alias="slider-1"
+    data-source="gallery"
+    style="visibility:hidden;background:#03080b;padding:0;margin:0px auto;">
+
+  <rs-module id="rev_slider_2_1" data-version="6.6.15">
+    <rs-slides style="overflow: hidden; position: absolute;">
+
+      <!-- SLIDE 1 -->
+      <rs-slide data-key="rs-2" data-title="Slide"
+          data-thumb="assets/img/slider/slider_01-50x100.jpg"
+          data-anim="ms:800ms;" data-in="o:0;" data-out="a:false;">
+
+        <!-- Background Image -->
+        <img src="assets/img/slider/slider_01.jpg"
+             class="rev-slidebg tp-rs-img"
+             data-bg="p:center top;"
+             width="1920" height="1006">
+
+        <!-- Content Zone -->
+        <rs-zone class="rev_row_zone_middle">
+          ...content layers...
+        </rs-zone>
+      </rs-slide>
+
+      <!-- SLIDE 2 & 3 similar structure -->
+
+    </rs-slides>
+  </rs-module>
+</rs-module-wrap>
+```
+
+### Slide Background Images:
+- slider_01.jpg (1920x1006)
+- slider_02.jpg (1920x990)
+- slider_03.jpg (1920x990)
+
+--------------------------------------------------------------------------------
+
+## SLIDER CONTENT LAYERS
+
+### Main Heading Layer:
+```html
+<rs-layer
+    data-type="text"
+    data-text="w:normal;s:68,57,43,35;l:80,62,47,44;ls:-2.04px;fw:500;"
+    data-frame_0="x:-175%;o:1;"
+    data-frame_0_mask="u:t;x:100%;"
+    data-frame_1="e:power3.out;st:590;sp:1000;sR:590;"
+    style="font-family:'Poppins';">
+
+    Discover Your Path<br />to Success
+</rs-layer>
+```
+- Font: Poppins, 68px (desktop), 35px (mobile)
+- Line height: 80px desktop
+- Animation: Slide in from left with mask (`power3.out` easing)
+
+### Subheading Layer:
+```html
+<rs-layer
+    data-type="text"
+    data-color="#838788"
+    data-text="w:normal;s:20,20,20,17;l:30,30,30,28;fw:500;"
+    style="font-family:'DM Sans';">
+
+    Seize the Opportunity: Start Your Transformation Today
+</rs-layer>
+```
+- Font: DM Sans, 20px, gray color
+- Animation: Fade in with x offset
+
+### CTA Buttons Group:
+```html
+<rs-group data-type="group">
+  <!-- Primary Button (Lime) -->
+  <rs-layer data-type="button">
+    <a href="?a=signup" class="xb-btn xb-btn--business">
+      <div class="btn-anim-wrap">
+        <span class="button-text">Get Started Today</span>
+        <span class="button-text">Get Started Today</span>
+      </div>
+    </a>
+  </rs-layer>
+
+  <!-- Secondary Button (Dark) -->
+  <rs-layer data-type="button">
+    <a href="?a=about" class="xb-btn xb-btn--business btn-dark">
+      <div class="btn-anim-wrap">
+        <span class="button-text">See Our Services</span>
+        <span class="button-text">See Our Services</span>
+      </div>
+    </a>
+  </rs-layer>
+</rs-group>
+```
+
+--------------------------------------------------------------------------------
+
+## STATISTICS COUNTERS (Bottom of Slider)
+
+### Two stat boxes displayed inline at bottom of each slide:
+
+**Box 1 - Trusted Users:**
+```html
+<rs-group data-border="bos:solid;boc:#222528;bow:0,2px,0,0;">
+  <rs-layer data-color="#838788" style="font-family:'DM Sans';text-transform:uppercase;">
+    👋 Trusted by over
+  </rs-layer>
+  <rs-layer data-color="#ccff86" data-text="s:65,65,50,35;fw:500;" style="font-family:'Poppins';">
+    14,000
+  </rs-layer>
+  <rs-layer data-color="#838788">
+    Happy Investors globally
+  </rs-layer>
+</rs-group>
+```
+
+**Box 2 - Satisfaction Rate:**
+```html
+<rs-group>
+  <rs-layer data-color="#838788">👋 We Provide</rs-layer>
+  <rs-layer data-color="#ccff86" style="font-family:'Poppins';">100%</rs-layer>
+  <rs-layer data-color="#838788">Satisfactory services</rs-layer>
+</rs-group>
+```
+
+### Key Styling:
+- Numbers in #ccff86 (lime green), 65px Poppins
+- Labels in #838788 (gray), 14px DM Sans uppercase
+- Right border separator: #222528
+
+--------------------------------------------------------------------------------
+
+## RESPONSIVE BREAKPOINTS (Revolution Slider)
+
+Format: `desktop,tablet,mobile-landscape,mobile-portrait`
+
+- Heading size: `s:68,57,43,35` (68px -> 35px)
+- Line height: `l:80,62,47,44`
+- Container widths adjust per breakpoint
+- Stats boxes: `w:308px,289px,334px,198px`
+
+--------------------------------------------------------------------------------
+
+## KEY ANIMATIONS
+
+1. **Heading**: Slide from left with mask reveal (`x:-175%` to `x:0`)
+2. **Subheading**: Fade in with x offset (`x:50` to `x:0`)
+3. **Buttons**: Staggered appearance (st:1490)
+4. **Stats**: Fade in from bottom (st:1880)
+5. **Slide transition**: 800ms (`data-anim="ms:800ms;"`)
+6. **Easing**: `power3.out` for smooth deceleration
+
+--------------------------------------------------------------------------------
+
+## BUTTON ANIMATION EFFECT
+
+Double text span technique for hover animation:
+```html
+<a class="xb-btn xb-btn--business">
+  <div class="btn-anim-wrap">
+    <span class="button-text">Get Started Today</span>
+    <span class="button-text">Get Started Today</span>
+  </div>
+</a>
+```
+- First span visible by default
+- Second span slides up on hover (CSS translateY)
+- Creates a "rolling text" effect
+
+--------------------------------------------------------------------------------
+
+## SECTION AFTER SLIDER (About Section)
+
+```html
+<section class="about z-1 pos-rel bg_img pt-140 pb-140"
+         data-bg-color="#CCFF86"
+         data-background="assets/img/bg/about_bg.jpg">
+  <div class="container">
+    <!-- Tab Navigation -->
+    <ul class="nav bc-about__tab nav-tabs">
+      <li><button class="nav-link active">About Horizon Capital</button></li>
+      <li><button class="nav-link">Mission & Vision</button></li>
+      <li><button class="nav-link">Our Approach</button></li>
+    </ul>
+    ...
+  </div>
+</section>
+```
+
+- Background: Lime green (#CCFF86) with background image overlay
+- Padding: 140px top/bottom
+- Bootstrap tabs for content switching
+
+================================================================================
+END OF HORIZONCAPITALLC STUDY
+================================================================================

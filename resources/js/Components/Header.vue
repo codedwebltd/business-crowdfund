@@ -23,6 +23,12 @@
                     <a href="#how-it-works" class="text-sm font-semibold text-gray-300 hover:text-orange-400 transition-colors">How It Works</a>
                     <a href="#earnings" class="text-sm font-semibold text-gray-300 hover:text-orange-400 transition-colors">Earnings</a>
                     <a href="#testimonials" class="text-sm font-semibold text-gray-300 hover:text-orange-400 transition-colors">Success Stories</a>
+                    <Link href="/support" class="text-sm font-semibold text-gray-300 hover:text-orange-400 transition-colors flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                        Support
+                    </Link>
                 </div>
 
                 <!-- CTA + Mobile Toggle -->
@@ -105,6 +111,24 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                             </svg>
                         </a>
+
+                        <Link href="/support" @click="mobileMenuOpen = false"
+                              class="group flex items-center justify-between px-4 py-3.5 rounded-xl text-gray-300 hover:text-white bg-white/5 hover:bg-gradient-to-r hover:from-orange-500/20 hover:to-purple-500/20 border border-white/10 hover:border-orange-500/30 transition-all duration-300">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-400/20 to-purple-500/20 flex items-center justify-center border border-orange-500/20 group-hover:border-orange-500/40 group-hover:scale-110 transition-all">
+                                    <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-bold">Support</div>
+                                    <div class="text-xs text-gray-400 group-hover:text-gray-300">Get help & support</div>
+                                </div>
+                            </div>
+                            <svg class="w-5 h-5 text-gray-500 group-hover:text-orange-400 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </Link>
 
                         <!-- Divider with Text -->
                         <div class="flex items-center gap-3 my-2">

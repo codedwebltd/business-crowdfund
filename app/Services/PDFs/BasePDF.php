@@ -133,11 +133,14 @@ SVG;
                 top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%) rotate(-45deg);
-                font-size: 80px;
-                font-weight: bold;
-                color: rgba(124, 58, 237, 0.08);
+                font-size: 90px;
+                font-weight: 900;
+                color: rgba(124, 58, 237, 0.15);
+                text-transform: uppercase;
+                letter-spacing: 8px;
                 z-index: -1;
                 white-space: nowrap;
+                font-family: 'Arial Black', sans-serif;
             }
 
             /* Header */

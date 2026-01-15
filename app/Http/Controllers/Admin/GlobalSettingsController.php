@@ -169,14 +169,42 @@ class GlobalSettingsController extends Controller
 
     public function updateSystem(Request $request)
     {
-        GlobalSetting::first()->update($request->only([
+        $settings = GlobalSetting::first();
+        $oldMaintenanceMode = $settings->maintenance_mode;
+
+        // Update settings
+        $settings->update($request->only([
             'maintenance_mode',
+            'maintenance_end_at',
+            'admin_ip_whitelist',
             'new_registrations_enabled',
             'withdrawals_enabled',
             'referral_bonuses_enabled',
             'total_members'
         ]));
-        return back();
+
+        // Handle maintenance mode changes
+        $newMaintenanceMode = $request->boolean('maintenance_mode');
+
+        if ($newMaintenanceMode && !$oldMaintenanceMode) {
+            // Enabling maintenance mode - put site down
+            \Artisan::call('down', [
+                '--secret' => 'Galaxys24ultras.',
+                '--render' => 'errors.503'
+            ]);
+            logger()->info('Maintenance mode enabled by admin', [
+                'user_id' => auth()->id(),
+                'end_at' => $request->maintenance_end_at
+            ]);
+        } elseif (!$newMaintenanceMode && $oldMaintenanceMode) {
+            // Disabling maintenance mode - bring site up
+            \Artisan::call('up');
+            logger()->info('Maintenance mode disabled by admin', [
+                'user_id' => auth()->id()
+            ]);
+        }
+
+        return back()->with('success', 'System settings updated successfully');
     }
 
     public function updateNotifications(Request $request)
@@ -207,7 +235,9 @@ class GlobalSettingsController extends Controller
             'ai_task_generation_enabled',
             'ai_configuration',
             'ai_generation_frequency_hours',
-            'min_task_templates_threshold'
+            'min_task_templates_threshold',
+            'task_deactivation_days',
+            'task_deletion_days'
         ]));
         return back();
     }

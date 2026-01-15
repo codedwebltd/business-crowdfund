@@ -38,6 +38,9 @@ return new class extends Migration
             // Role & Permissions (0 = user, 1 = admin)
             $table->tinyInteger('role')->default(0)->index();
 
+            // User Type (USER = normal user, AGENT = platform agent)
+            $table->enum('user_type', ['USER', 'AGENT'])->default('USER')->index()->comment('USER = normal user, AGENT = platform agent');
+
             // Bank Details for Withdrawals
             $table->string('bank_name')->nullable();
             $table->string('account_number')->nullable();

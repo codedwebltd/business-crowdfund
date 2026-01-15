@@ -21,9 +21,166 @@ use App\Helpers\CountryHelper;
 */
 
 Route::get('/', function () {
-    $settings = \App\Models\GlobalSetting::get();
+    $settings = \App\Models\GlobalSetting::first();
+
+    // Get approved testimonials with user info (limited for performance)
+    $testimonials = \App\Models\Testimonial::with('user')
+        ->where('status', 'APPROVED')
+        ->where('trash_testimonial', false)
+        ->where('negative_testimonial', false)
+        ->where('complaint_testimonial', false)
+        ->orderBy('created_at', 'desc')
+        ->limit(50) // Limit initial load for performance
+        ->get()
+        ->map(function ($testimonial) {
+            return [
+                'id' => $testimonial->id,
+                'name' => $testimonial->name ?? $testimonial->user?->full_name ?? 'Anonymous',
+                'message' => $testimonial->ai_corrected_message ?? $testimonial->message,
+                'created_at' => $testimonial->created_at->diffForHumans(),
+                'date' => $testimonial->created_at->format('M d, Y'),
+            ];
+        });
+
+    // ========== EARNINGS SECTION: SERVER-SIDE TRANSACTION GENERATION ==========
+    // You can manipulate these values to control what visitors see
+
+    // Configuration - ADJUST THESE VALUES AS NEEDED
+    $displayTransactionCount = 100;    // Shows "100 recent payouts" (can be 1000+)
+    $fakeTransactionCount = 80;        // How many fake VIP transactions to ADD
+    $totalPaidMultiplier = 18;         // Multiply real total by this (e.g., 15x)
+    $fixedTotalPaidOut = null;         // Set a fixed amount (e.g., 500000000) or null to use multiplier
+
+    // Helper function to abbreviate numbers (10000 → 10K, 1000000 → 1M)
+    $abbreviateNumber = function($number) {
+        $suffixes = ['', 'K', 'M', 'B', 'T'];
+        $suffixIndex = 0;
+
+        while ($number >= 1000 && $suffixIndex < count($suffixes) - 1) {
+            $number /= 1000;
+            $suffixIndex++;
+        }
+
+        // Format: if decimal is .0, show as integer, otherwise show 1 decimal
+        $formatted = ($number == floor($number)) ? number_format($number, 0) : number_format($number, 1);
+        return $formatted . $suffixes[$suffixIndex];
+    };
+
+    // VIP style names for FAKE transactions only
+    $vipNames = [
+        'VIP Member', 'Elite Earner', 'Premium User', 'Pro Trader', 'Gold Member',
+        'Diamond User', 'Platinum Earner', 'Master Trader', 'Expert Member', 'Top Performer',
+        'Star Earner', 'Champion User', 'Silver Elite', 'Bronze Pro', 'Emerald Member',
+        'Ruby Earner', 'Sapphire VIP', 'Crystal Elite', 'Crown Member', 'Royal Earner',
+        'Prime User', 'Ultra Member', 'Mega Earner', 'Super Pro', 'Alpha Trader',
+        'Beta Member', 'Gamma Elite', 'Delta Pro', 'Omega VIP', 'Titan Earner',
+        'Phoenix Member', 'Dragon Elite', 'Thunder Pro', 'Storm Trader', 'Lightning VIP',
+        'Summit Member', 'Peak Earner', 'Zenith Pro', 'Apex Trader', 'Vertex VIP',
+        'Pioneer Member', 'Legend Elite', 'Icon Pro', 'Maverick User', 'Ace Earner',
+        'Boss Member', 'Chief Elite', 'Captain Pro', 'Admiral VIP', 'General Trader'
+    ];
+
+    $transactionTypes = [
+        'TASK_COMPLETION', 'REFERRAL_BONUS', 'COMMISSION_EARNING', 'WITHDRAWAL_APPROVED',
+        'RANK_BONUS', 'DAILY_EARNING', 'PERFORMANCE_BONUS', 'CRYPTO_PAYOUT',
+        'MATRIX_BONUS', 'TEAM_COMMISSION', 'LEADERSHIP_BONUS', 'MATCHING_BONUS'
+    ];
+
+    $paymentMethods = ['bank_transfer', 'mobile_money', 'opay', 'palmpay', 'kuda', 'moniepoint'];
+
+    // Get REAL transactions from database - KEEP REAL NAMES
+    $realTransactions = \App\Models\Transaction::with('user:id,full_name')
+        ->where('status', 'COMPLETED')
+        ->where('is_credit', true)
+        ->orderBy('created_at', 'desc')
+        ->limit(30) // Get 30 real ones with REAL names
+        ->get()
+        ->map(function ($transaction) {
+            return [
+                'id' => $transaction->id,
+                'user_name' => $transaction->user?->full_name ?? 'Anonymous User', // REAL NAME
+                'amount' => $transaction->amount,
+                'currency' => $transaction->currency,
+                'transaction_type' => $transaction->transaction_type,
+                'transaction_hash' => $transaction->transaction_hash,
+                'created_at' => $transaction->created_at->diffForHumans(),
+                'timestamp' => $transaction->created_at->format('M d, Y H:i'),
+                'metadata' => $transaction->metadata,
+                'description' => $transaction->description,
+            ];
+        })->toArray();
+
+    // Generate FAKE transactions with VIP names (added alongside real ones)
+    $fakeTransactions = [];
+    $usedNames = []; // Track used names to avoid repetition
+
+    // Get currency code from global settings (dynamic)
+    $currencyCode = CountryHelper::getCurrencyCode($settings->country_of_operation ?? 'NGA');
+    $countryPrefix = strtoupper(substr($settings->country_of_operation ?? 'NGA', 0, 2)); // NG, GH, KE, etc.
+
+    for ($i = 0; $i < $fakeTransactionCount; $i++) {
+        // Get unique VIP name (cycle through if needed)
+        $availableNames = array_diff($vipNames, $usedNames);
+        if (empty($availableNames)) {
+            $usedNames = []; // Reset if we've used all names
+            $availableNames = $vipNames;
+        }
+        $selectedName = $availableNames[array_rand($availableNames)];
+        $usedNames[] = $selectedName;
+
+        $isCrypto = rand(0, 100) < 25; // 25% chance of crypto transaction
+        $amount = rand(5000, 500000); // 5,000 to 500,000 in local currency
+        $minutesAgo = rand(1, 1440); // 1 minute to 24 hours ago
+
+        $fakeTransactions[] = [
+            'id' => \Illuminate\Support\Str::uuid()->toString(),
+            'user_name' => $selectedName,
+            'amount' => $amount,
+            'currency' => $currencyCode, // Dynamic: NGN, GHS, KES, USD, etc.
+            'transaction_type' => $transactionTypes[array_rand($transactionTypes)],
+            'transaction_hash' => 'TXN-' . $countryPrefix . '-' . strtoupper(\Illuminate\Support\Str::random(8)),
+            'created_at' => $minutesAgo <= 60
+                ? $minutesAgo . ' minutes ago'
+                : ($minutesAgo <= 120 ? '1 hour ago' : floor($minutesAgo / 60) . ' hours ago'),
+            'timestamp' => now()->subMinutes($minutesAgo)->format('M d, Y H:i'),
+            'metadata' => $isCrypto ? [
+                'crypto_address' => '0x' . strtoupper(\Illuminate\Support\Str::random(40)),
+                'crypto_network' => ['ETH', 'BSC', 'TRON', 'POLYGON'][rand(0, 3)],
+                'payment_method' => 'crypto'
+            ] : [
+                'payment_method' => $paymentMethods[array_rand($paymentMethods)],
+                'bank_name' => ['GTBank', 'Access Bank', 'First Bank', 'UBA', 'Zenith Bank'][rand(0, 4)]
+            ],
+            'description' => 'Automated earning distribution',
+        ];
+    }
+
+    // Combine real and fake transactions
+    $allTransactions = array_merge($realTransactions, $fakeTransactions);
+    shuffle($allTransactions); // Randomize order
+
+    // Calculate totals
+    $realTotal = \App\Models\Transaction::where('status', 'COMPLETED')
+        ->where('is_credit', true)
+        ->sum('amount');
+
+    // Use fixed total if set, otherwise multiply real total
+    $inflatedTotal = $fixedTotalPaidOut ?? ($realTotal * $totalPaidMultiplier);
+
+    // Calculate fake transaction count for display
+    $displayCount = $displayTransactionCount > 0 ? $displayTransactionCount : count($allTransactions);
+
+    // Get currency symbol from global settings (dynamic, not hardcoded)
+    $currencySymbol = CountryHelper::getCurrencySymbol($settings->country_of_operation ?? 'NGA');
+
     return Inertia::render('Welcome', [
-        'settings' => $settings
+        'settings' => $settings,
+        'testimonials' => $testimonials,
+        'transactions' => array_slice($allTransactions, 0, 100), // Send up to 100 mixed
+        'totalPaidOut' => $inflatedTotal,                        // Raw number for formatting
+        'totalPaidOutFormatted' => $currencySymbol . $abbreviateNumber($inflatedTotal), // Abbreviated: ₦1.2M, $500K, etc.
+        'transactionCount' => $displayCount,                     // Manipulated count for display
+        'currencySymbol' => $currencySymbol,                     // For frontend use
     ]);
 });
 
@@ -197,6 +354,7 @@ Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(
 
     // Referrals
     Route::get('/referrals', [App\Http\Controllers\User\ReferralController::class, 'index'])->name('referrals');
+    Route::get('/hardwork-stats', [App\Http\Controllers\User\ReferralController::class, 'hardworkStats'])->name('hardwork-stats');
 
     // Payment Routes
     Route::post('/payment/initiate', [App\Http\Controllers\PaymentController::class, 'initiate'])->name('payment.initiate');
@@ -246,16 +404,56 @@ Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(
     Route::post('/notifications/delete-all', [App\Http\Controllers\User\NotificationController::class, 'deleteAll'])->name('notifications.delete-all');
 
     // Admin Routes (Role 1 only)
-    Route::prefix('admin')->group(function () {
+    Route::prefix('admin')->middleware('admin.access')->group(function () {
         Route::get('/', function () {
             if (!auth()->user()->isAdmin()) {
                 abort(403, 'Unauthorized');
             }
 
-            $settings = \App\Models\GlobalSetting::get();
+            $settings = \App\Models\GlobalSetting::first();
+
+            // Efficient aggregated queries for dashboard stats
+            $stats = [
+                'total_users' => \App\Models\User::count(),
+                'active_users' => \App\Models\User::where('status', 'ACTIVE')->count(),
+                'pending_users' => \App\Models\User::where('status', 'PENDING')->count(),
+                'total_withdrawals' => \App\Models\Withdrawal::where('status', 'APPROVED')->sum('amount_requested'),
+                'pending_withdrawals' => \App\Models\Withdrawal::where('status', 'PENDING')->count(),
+                'completed_tasks_today' => \App\Models\UserTask::whereDate('completed_at', today())->whereNotNull('completed_at')->count(),
+                'total_earnings_paid' => \App\Models\Withdrawal::where('status', 'APPROVED')->sum('amount_requested'),
+            ];
+
+            // Last 7 days data for charts (aggregated, not individual records)
+            $chartData = [
+                'daily_registrations' => \App\Models\User::selectRaw('DATE(created_at) as date, COUNT(*) as count')
+                    ->where('created_at', '>=', now()->subDays(7))
+                    ->groupBy('date')
+                    ->orderBy('date')
+                    ->pluck('count', 'date'),
+                'daily_tasks' => \App\Models\UserTask::selectRaw('DATE(completed_at) as date, COUNT(*) as count')
+                    ->where('completed_at', '>=', now()->subDays(7))
+                    ->whereNotNull('completed_at')
+                    ->groupBy('date')
+                    ->orderBy('date')
+                    ->pluck('count', 'date'),
+                'daily_withdrawals' => \App\Models\Withdrawal::selectRaw('DATE(requested_at) as date, SUM(amount_requested) as total')
+                    ->where('requested_at', '>=', now()->subDays(7))
+                    ->where('status', 'APPROVED')
+                    ->groupBy('date')
+                    ->orderBy('date')
+                    ->pluck('total', 'date'),
+            ];
+
+            // User distribution by status (for pie chart)
+            $usersByStatus = \App\Models\User::selectRaw('status, COUNT(*) as count')
+                ->groupBy('status')
+                ->pluck('count', 'status');
 
             return Inertia::render('Admin/Dashboard', [
                 'settings' => $settings,
+                'stats' => $stats,
+                'chartData' => $chartData,
+                'usersByStatus' => $usersByStatus,
             ]);
         })->name('admin.dashboard');
 
@@ -294,6 +492,43 @@ Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(
 
         // Task Templates
         Route::get('/tasks', [\App\Http\Controllers\Admin\TaskTemplateController::class, 'index'])->name('admin.tasks');
+
+        // Rank Management
+        Route::get('/ranks', [\App\Http\Controllers\Admin\RankController::class, 'index'])->name('admin.ranks');
+        Route::post('/ranks', [\App\Http\Controllers\Admin\RankController::class, 'store'])->name('admin.ranks.store');
+        Route::post('/ranks/{rank}/update', [\App\Http\Controllers\Admin\RankController::class, 'update'])->name('admin.ranks.update');
+        Route::post('/ranks/{rank}/toggle', [\App\Http\Controllers\Admin\RankController::class, 'toggleStatus'])->name('admin.ranks.toggle');
+        Route::delete('/ranks/{rank}', [\App\Http\Controllers\Admin\RankController::class, 'destroy'])->name('admin.ranks.destroy');
+
+        // Plan Management (Subscriptions)
+        Route::get('/subscriptions', [\App\Http\Controllers\Admin\PlanController::class, 'index'])->name('admin.subscriptions');
+        Route::post('/subscriptions', [\App\Http\Controllers\Admin\PlanController::class, 'store'])->name('admin.subscriptions.store');
+        Route::post('/subscriptions/{plan}/update', [\App\Http\Controllers\Admin\PlanController::class, 'update'])->name('admin.subscriptions.update');
+        Route::post('/subscriptions/{plan}/toggle', [\App\Http\Controllers\Admin\PlanController::class, 'toggleStatus'])->name('admin.subscriptions.toggle');
+        Route::post('/subscriptions/{plan}/toggle-popular', [\App\Http\Controllers\Admin\PlanController::class, 'togglePopular'])->name('admin.subscriptions.toggle-popular');
+        Route::delete('/subscriptions/{plan}', [\App\Http\Controllers\Admin\PlanController::class, 'destroy'])->name('admin.subscriptions.destroy');
+
+        // User Management
+        Route::get('/users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('admin.users.index');
+        Route::get('/users/{user}', [\App\Http\Controllers\Admin\UserController::class, 'show'])->name('admin.users.show');
+        Route::post('/users/{user}/update', [\App\Http\Controllers\Admin\UserController::class, 'update'])->name('admin.users.update');
+        Route::get('/users/{user}/referrals', [\App\Http\Controllers\Admin\UserController::class, 'referrals'])->name('admin.users.referrals');
+        Route::get('/users/{user}/tasks', [\App\Http\Controllers\Admin\UserController::class, 'tasks'])->name('admin.users.tasks');
+        Route::get('/users/{user}/withdrawals', [\App\Http\Controllers\Admin\UserController::class, 'withdrawals'])->name('admin.users.withdrawals');
+        Route::post('/users/{user}/status', [\App\Http\Controllers\Admin\UserController::class, 'updateStatus'])->name('admin.users.status');
+        Route::post('/users/{user}/ban-task', [\App\Http\Controllers\Admin\UserController::class, 'banTask'])->name('admin.users.ban-task');
+        Route::post('/users/{user}/clear-task-ban', [\App\Http\Controllers\Admin\UserController::class, 'clearTaskBan'])->name('admin.users.clear-task-ban');
+        Route::post('/users/{user}/verify-kyc', [\App\Http\Controllers\Admin\UserController::class, 'verifyKyc'])->name('admin.users.verify-kyc');
+        Route::post('/users/{user}/adjust-balance', [\App\Http\Controllers\Admin\UserController::class, 'adjustBalance'])->name('admin.users.adjust-balance');
+        Route::delete('/users/{user}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('admin.users.destroy');
+        Route::post('/users/bulk-status', [\App\Http\Controllers\Admin\UserController::class, 'bulkStatus'])->name('admin.users.bulk-status');
+        Route::post('/users/bulk-delete', [\App\Http\Controllers\Admin\UserController::class, 'bulkDelete'])->name('admin.users.bulk-delete');
+
+        // Content Pool Management
+        Route::get('/content-pool', [\App\Http\Controllers\Admin\ContentPoolController::class, 'index'])->name('admin.content-pool');
+        Route::post('/content-pool/{id}/toggle', [\App\Http\Controllers\Admin\ContentPoolController::class, 'toggleActive'])->name('admin.content-pool.toggle');
+        Route::delete('/content-pool/{id}', [\App\Http\Controllers\Admin\ContentPoolController::class, 'destroy'])->name('admin.content-pool.destroy');
+        Route::post('/content-pool/{id}/reset-usage', [\App\Http\Controllers\Admin\ContentPoolController::class, 'resetUsage'])->name('admin.content-pool.reset');
         Route::post('/tasks/{id}/approve', [\App\Http\Controllers\Admin\TaskTemplateController::class, 'approve']);
         Route::post('/tasks/{id}/deactivate', [\App\Http\Controllers\Admin\TaskTemplateController::class, 'deactivate']);
         Route::delete('/tasks/{id}', [\App\Http\Controllers\Admin\TaskTemplateController::class, 'destroy']);
@@ -318,6 +553,8 @@ Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(
         Route::get('/testimonials', [\App\Http\Controllers\Admin\TestimonialController::class, 'index'])->name('admin.testimonials');
         Route::post('/testimonials/{id}/approve', [\App\Http\Controllers\Admin\TestimonialController::class, 'approve']);
         Route::post('/testimonials/{id}/reject', [\App\Http\Controllers\Admin\TestimonialController::class, 'reject']);
+        Route::post('/testimonials/generate-ai', [\App\Http\Controllers\Admin\TestimonialController::class, 'generateWithAI'])->name('admin.testimonials.generate-ai');
+        Route::post('/testimonials/bulk-publish', [\App\Http\Controllers\Admin\TestimonialController::class, 'bulkPublish'])->name('admin.testimonials.bulk-publish');
 
         // KYC Verifications
         Route::get('/kyc', [\App\Http\Controllers\Admin\KycController::class, 'index'])->name('admin.kyc');
@@ -332,6 +569,17 @@ Route::middleware(['auth', 'role.redirect', 'fraud.detect', 'has.plan'])->group(
         // Liquidity & Earnings
         Route::get('/liquidity', [\App\Http\Controllers\Admin\LiquidityController::class, 'index'])->name('admin.liquidity.index');
         Route::delete('/liquidity/{id}', [\App\Http\Controllers\Admin\LiquidityController::class, 'destroy'])->name('admin.liquidity.destroy');
+
+        // Support Management
+        Route::get('/support', [\App\Http\Controllers\Admin\SupportController::class, 'index'])->name('admin.support.index');
+        Route::get('/support/stats', [\App\Http\Controllers\Admin\SupportController::class, 'stats'])->name('admin.support.stats');
+        Route::get('/support/{ticketId}', [\App\Http\Controllers\Admin\SupportController::class, 'show'])->name('admin.support.show');
+        Route::post('/support/{ticketId}/message', [\App\Http\Controllers\Admin\SupportController::class, 'sendMessage']);
+        Route::get('/support/{ticketId}/messages', [\App\Http\Controllers\Admin\SupportController::class, 'getMessages']);
+        Route::post('/support/{ticketId}/typing', [\App\Http\Controllers\Admin\SupportController::class, 'typing']);
+        Route::post('/support/{ticketId}/status', [\App\Http\Controllers\Admin\SupportController::class, 'updateStatus']);
+        Route::post('/support/{ticketId}/priority', [\App\Http\Controllers\Admin\SupportController::class, 'updatePriority']);
+        Route::post('/support/{ticketId}/assign', [\App\Http\Controllers\Admin\SupportController::class, 'assignTicket']);
     });
 });
 
@@ -459,6 +707,23 @@ Route::get('/demo2', function () {
         'baseCSS'   => $pdfBase->css(),
     ]);
 });
+
+// ========== SUPPORT SYSTEM ROUTES ==========
+// Public Support API (for widget - works for guests and authenticated users)
+Route::prefix('api/support')->group(function () {
+    Route::get('/ticket', [App\Http\Controllers\SupportController::class, 'getOrCreateTicket']);
+    Route::post('/ticket', [App\Http\Controllers\SupportController::class, 'startTicket']);
+    Route::get('/tickets', [App\Http\Controllers\SupportController::class, 'getTickets']);
+    Route::get('/ticket/{ticketId}/messages', [App\Http\Controllers\SupportController::class, 'getMessages']);
+    Route::post('/ticket/{ticketId}/message', [App\Http\Controllers\SupportController::class, 'sendMessage']);
+    Route::post('/ticket/{ticketId}/typing', [App\Http\Controllers\SupportController::class, 'typing']);
+    Route::post('/ticket/{ticketId}/close', [App\Http\Controllers\SupportController::class, 'closeTicket']);
+    Route::post('/ticket/{ticketId}/rate', [App\Http\Controllers\SupportController::class, 'rateTicket']);
+});
+
+// Support Pages (Inertia)
+Route::get('/support', [App\Http\Controllers\SupportController::class, 'index'])->name('support');
+Route::get('/support/{ticketId}', [App\Http\Controllers\SupportController::class, 'show'])->name('support.show');
 
 // Admin Command Control Routes
 Route::middleware(['auth', 'role.redirect'])->prefix('admin')->group(function () {

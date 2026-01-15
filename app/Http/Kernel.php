@@ -69,5 +69,6 @@ class Kernel extends HttpKernel
         'role.redirect' => \App\Http\Middleware\RoleRedirect::class,
         'has.plan' => \App\Http\Middleware\EnsureUserHasPlan::class,
         'fingerprint' => \App\Http\Middleware\CaptureDeviceFingerprint::class,
+        'admin.access' => \App\Http\Middleware\AdminAccessMiddleware::class,
     ];
 }

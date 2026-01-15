@@ -12,9 +12,9 @@
     <div class="pdf-container">
         <!-- Header -->
         <div class="pdf-header">
-            <div class="logo-container">
+            {{-- <div class="logo-container">
                 <img src="{{ $logo }}" alt="{{ $companyName }} Logo">
-            </div>
+            </div> --}}
             <div class="company-name">{{ $companyName }}</div>
             <div class="company-tagline">Welcome to the Future of Earning!</div>
         </div>

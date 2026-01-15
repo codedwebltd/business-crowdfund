@@ -97,6 +97,15 @@
             </svg>
             <span>Referrals</span>
           </NavLink>
+
+          <!-- Hardwork Stats (Agents Only) -->
+          <NavLink v-if="isAgent" href="/hardwork-stats" :active="isActive('hardwork-stats')">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <span>Hardwork Stats</span>
+            <span class="ml-auto px-2 py-0.5 text-[9px] font-bold bg-gradient-to-r from-purple-500 to-pink-500 rounded-full">AGENT</span>
+          </NavLink>
         </div>
 
         <!-- Account Section -->
@@ -260,6 +269,7 @@
     </div>
 
     <ToastContainer />
+    <SupportWidget />
   </div>
 </template>
 
@@ -268,6 +278,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
 import NavLink from '@/Components/NavLink.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
+import SupportWidget from '@/Components/Support/SupportWidget.vue';
 import Swal from 'sweetalert2';
 
 const props = defineProps({
@@ -422,6 +433,10 @@ const appAbbreviation = computed(() => {
 const userName = computed(() => page.props.auth?.user?.full_name || page.props.user?.full_name || 'User');
 const userEmail = computed(() => page.props.auth?.user?.email || page.props.user?.email || page.props.auth?.user?.phone_number || page.props.user?.phone_number || 'user@example.com');
 const unreadNotifications = computed(() => page.props.unreadNotifications || 0);
+const isAgent = computed(() => {
+  const user = page.props.auth?.user || page.props.user;
+  return user?.user_type === 'AGENT';
+});
 
 const isActive = (path, exact = false) => {
   const currentPath = page.url;

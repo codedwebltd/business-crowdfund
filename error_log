@@ -13,3 +13,7 @@ Stack trace:
 Stack trace:
 #0 {main}
   thrown in Command line code on line 1
+[12-Jan-2026 18:33:49 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function config() in Command line code:1
+Stack trace:
+#0 {main}
+  thrown in Command line code on line 1

@@ -28,8 +28,8 @@ return new class extends Migration
             $table->enum('target_audience', ['all', 'active', 'pending', 'unverified'])->default('all')->index();
 
             // Scheduling
-            $table->timestamp('start_date')->nullable()->index();
-            $table->timestamp('end_date')->nullable()->index();
+            $table->date('start_date')->nullable()->index();
+            $table->date('end_date')->nullable()->index();
 
             // Optional CTA
             $table->string('link_url')->nullable();

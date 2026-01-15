@@ -90,12 +90,16 @@ class NotificationService
         try {
             $user->notify(new WithdrawalNotification($type, $data));
 
+            // Determine action URL based on notification type
+            $actionUrl = $data['action_url'] ?? $this->getActionUrl($type, $data);
+            $actionLabel = $data['action_label'] ?? $this->getActionLabel($type);
+
             // Broadcast real-time notification via Pusher
             broadcast(new \App\Events\NotificationSent($user->id, [
                 'title' => $this->getTitle($type, $data),
                 'message' => $this->getMessage($type, $data),
-                'action_url' => '/notifications',
-                'action_label' => 'View Notifications',
+                'action_url' => $actionUrl,
+                'action_label' => $actionLabel,
                 'icon' => $this->getIcon($type, $data),
             ]));
 
@@ -104,6 +108,27 @@ class NotificationService
             logger()->error("Database notification failed: " . $e->getMessage());
             return false;
         }
+    }
+
+    protected function getActionUrl(string $type, array $data): string
+    {
+        return match ($type) {
+            'new_support_ticket', 'new_support_message' => '/admin/support/' . ($data['ticket_id'] ?? ''),
+            'withdrawal_requested', 'withdrawal_processing', 'withdrawal_approved', 'withdrawal_completed', 'withdrawal_rejected' => '/admin/withdrawals',
+            'kyc_approved', 'kyc_rejected', 'kyc_pending_review' => '/admin/kyc',
+            default => '/notifications',
+        };
+    }
+
+    protected function getActionLabel(string $type): string
+    {
+        return match ($type) {
+            'new_support_ticket' => 'View Ticket',
+            'new_support_message' => 'View Message',
+            'withdrawal_requested', 'withdrawal_processing', 'withdrawal_approved', 'withdrawal_completed', 'withdrawal_rejected' => 'View Withdrawals',
+            'kyc_approved', 'kyc_rejected', 'kyc_pending_review' => 'View KYC',
+            default => 'View Notifications',
+        };
     }
 
     protected function getTitle(string $type, array $data): string
@@ -130,6 +155,8 @@ class NotificationService
             'star_rating_demoted' => '⚠️ Star Rating Update',
             'payment_rejected' => '❌ Payment Rejected',
             'plan_upgrade_available' => '🎁 Plan Upgrade Available!',
+            'new_support_ticket' => '🎫 New Support Ticket',
+            'new_support_message' => '💬 New Support Message',
             default => 'Notification',
         };
     }
@@ -164,6 +191,8 @@ class NotificationService
             'star_rating_demoted' => '📉',
             'payment_rejected' => '❌',
             'plan_upgrade_available' => '🎁',
+            'new_support_ticket' => '🎫',
+            'new_support_message' => '💬',
             default => '🔔',
         };
     }
@@ -256,6 +285,8 @@ class NotificationService
             'star_rating_promoted' => "Star Rating Promoted to {$data['new_stars']}⭐" . (($data['new_stars'] ?? 0) == 5 ? " - General Rank Achieved! 👑" : ""),
             'star_rating_demoted' => "Star Rating Update - Now {$data['new_stars']}⭐",
             'plan_upgrade_available' => "Upgrade to " . ($data['qualified_plan_name'] ?? $data['qualified_plan'] ?? 'Premium') . " Plan - {$data['discount_percentage']}% Off!",
+            'new_support_ticket' => "🎫 New Support Ticket #" . ($data['ticket_number'] ?? '') . " - " . ($data['subject'] ?? 'Support Request'),
+            'new_support_message' => "💬 New Message in Ticket #" . ($data['ticket_number'] ?? '') . " - " . ($data['subject'] ?? 'Support'),
             default => "Notification from {$this->settings->app_name}",
         };
     }
@@ -284,6 +315,8 @@ class NotificationService
             'star_rating_promoted' => "Congratulations! " . str_repeat('⭐', $data['new_stars'] ?? 1) . " You've been promoted to {$data['new_stars']}-star rating" . ($data['new_stars'] == 5 ? " 👑 (General Rank)! Your withdrawals now have HIGHEST priority!" : "! Your withdrawal priority has increased. Keep up the excellent work!"),
             'star_rating_demoted' => "Your star rating has dropped from {$data['old_stars']}⭐ to {$data['new_stars']}⭐. " . str_repeat('⭐', $data['new_stars'] ?? 1) . " Stay active by completing tasks and referring users to regain your rating!",
             'plan_upgrade_available' => "🎉 Congratulations! " . str_repeat('⭐', $data['star_rating'] ?? 1) . " Based on your {$data['star_rating']}-star performance rating, you now qualify to upgrade to the " . ($data['qualified_plan_name'] ?? $data['qualified_plan'] ?? 'Premium') . " Plan! Special Offer: Get {$data['discount_percentage']}% OFF! Regular Price: ₦" . number_format($data['original_price'] ?? 0, 2) . " | Your Price: ₦" . number_format($data['discounted_price'] ?? 0, 2) . " | You Save: ₦" . number_format($data['savings'] ?? 0, 2) . "! Click on your dashboard to upgrade now!",
+            'new_support_ticket' => "🎫 New support ticket #" . ($data['ticket_number'] ?? '') . " has been opened by " . ($data['from'] ?? 'a user') . ". Subject: " . ($data['subject'] ?? 'Support Request') . ". Please respond to the customer as soon as possible.",
+            'new_support_message' => "💬 New message received in support ticket #" . ($data['ticket_number'] ?? '') . " from " . ($data['from'] ?? 'user') . ": \"" . ($data['message_preview'] ?? 'New message') . "\". Please check and respond promptly.",
             default => $data['message'] ?? "You have a new notification.",
         };
     }

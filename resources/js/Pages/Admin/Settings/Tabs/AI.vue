@@ -216,6 +216,44 @@
           </div>
         </div>
 
+        <!-- Task Cleanup Settings -->
+        <div>
+          <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+            Task Cleanup Settings
+            <Tooltip text="Control how long tasks stay active and when they get deleted" />
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs text-gray-600 mb-1 block flex items-center gap-1">
+                Task Deactivation (days)
+                <Tooltip text="Tasks older than this are deactivated (is_active = false) but kept for history" />
+              </label>
+              <input
+                v-model.number="form.task_deactivation_days"
+                type="number"
+                min="1"
+                max="90"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+              />
+              <p class="text-xs text-gray-500 mt-1">Tasks older than {{ form.task_deactivation_days }} days will be deactivated</p>
+            </div>
+            <div>
+              <label class="text-xs text-gray-600 mb-1 block flex items-center gap-1">
+                Task Deletion (days)
+                <Tooltip text="Tasks older than this are permanently deleted to save database space" />
+              </label>
+              <input
+                v-model.number="form.task_deletion_days"
+                type="number"
+                min="7"
+                max="365"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+              />
+              <p class="text-xs text-gray-500 mt-1">Tasks older than {{ form.task_deletion_days }} days will be deleted</p>
+            </div>
+          </div>
+        </div>
+
         <!-- Info Banner -->
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div class="flex gap-3">
@@ -286,7 +324,9 @@ const form = reactive({
     ...(props.settings.ai_configuration || {})
   },
   ai_generation_frequency_hours: props.settings.ai_generation_frequency_hours ?? 168,
-  min_task_templates_threshold: props.settings.min_task_templates_threshold ?? 50
+  min_task_templates_threshold: props.settings.min_task_templates_threshold ?? 50,
+  task_deactivation_days: props.settings.task_deactivation_days ?? 7,
+  task_deletion_days: props.settings.task_deletion_days ?? 30
 });
 
 const frequencyInDays = computed(() => {

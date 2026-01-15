@@ -486,8 +486,218 @@
             </div>
         </section>
 
+        <!-- Earnings Proof Section (Blockchain Style) -->
+        <section id="earnings" class="relative py-16 lg:py-24 overflow-hidden">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <!-- Section Header -->
+                <div class="text-center mb-12 lg:mb-16 animate-slide-up">
+                    <div class="inline-flex items-center gap-2 bg-gradient-to-r from-green-400/20 to-emerald-500/20 backdrop-blur-sm px-6 py-2 rounded-full border border-green-400/30 mb-4">
+                        <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="text-sm font-bold text-white">Live Earnings</span>
+                    </div>
+                    <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4">
+                        Real-Time Transaction Proof
+                    </h2>
+                    <p class="text-lg text-gray-300 max-w-2xl mx-auto">
+                        See real earnings happening right now - 100% transparent, blockchain-verified transactions
+                    </p>
+                </div>
+
+                <!-- Auto-Scrolling Transaction Feed -->
+                <div class="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl rounded-2xl border border-green-400/20 shadow-2xl shadow-green-500/10 overflow-hidden p-6">
+                    <!-- Blockchain Header -->
+                    <div class="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                            <span class="text-sm font-bold text-green-400">LIVE</span>
+                            <span class="text-xs text-gray-400">{{ displayTransactionCount }} recent payouts</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-gray-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                            <span>Verified</span>
+                        </div>
+                    </div>
+
+                    <!-- Scrollable Transaction List -->
+                    <div
+                        ref="transactionsContainer"
+                        class="space-y-3 overflow-y-auto scrollbar-custom-green"
+                        style="max-height: 500px;"
+                    >
+                        <div
+                            v-for="(tx, index) in displayedTransactions"
+                            :key="tx.id"
+                            class="group bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:border-green-400/30 hover:bg-white/10 transition-all duration-300 animate-slide-in-right"
+                            :style="`animation-delay: ${index * 50}ms`"
+                        >
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                                <!-- Left: User & Type -->
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                        {{ getInitials(tx.user_name) }}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="text-white font-semibold text-sm truncate">{{ tx.user_name }}</div>
+                                        <div class="text-gray-400 text-xs">{{ formatTransactionType(tx.transaction_type) }}</div>
+                                    </div>
+                                </div>
+
+                                <!-- Center: Amount & Hash -->
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-green-400 font-bold text-lg">+{{ formatCurrency(tx.amount, tx.currency) }}</span>
+                                        <span v-if="tx.metadata?.crypto_address" class="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full border border-orange-500/30">
+                                            CRYPTO
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                                        </svg>
+                                        <code class="text-xs text-gray-500 font-mono">{{ tx.transaction_hash }}</code>
+                                    </div>
+                                </div>
+
+                                <!-- Right: Time & Metadata -->
+                                <div class="text-right space-y-1">
+                                    <div class="text-xs text-gray-400">{{ tx.created_at }}</div>
+                                    <div v-if="tx.metadata?.crypto_address" class="text-xs text-orange-400 font-mono truncate" :title="tx.metadata.crypto_address">
+                                        {{ tx.metadata.crypto_address.substring(0, 8) }}...{{ tx.metadata.crypto_address.substring(tx.metadata.crypto_address.length - 6) }}
+                                    </div>
+                                    <div v-else-if="tx.metadata?.payment_method" class="text-xs text-gray-500 capitalize">
+                                        {{ tx.metadata.payment_method.replace('_', ' ') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Footer -->
+                    <div class="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/10">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-white">{{ totalPaidOut }}</div>
+                            <div class="text-xs text-gray-400 mt-1">Total Paid</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-400">{{ displayTransactionCount }}</div>
+                            <div class="text-xs text-gray-400 mt-1">Transactions</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-white">100%</div>
+                            <div class="text-xs text-gray-400 mt-1">Verified</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Success Stories Section -->
+        <section id="testimonials" class="relative py-16 lg:py-24">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <!-- Section Header -->
+                <div class="text-center mb-12 lg:mb-16 animate-slide-up">
+                    <div class="inline-flex items-center gap-2 bg-gradient-to-r from-orange-400/20 to-purple-500/20 backdrop-blur-sm px-6 py-2 rounded-full border border-orange-400/30 mb-4">
+                        <svg class="w-5 h-5 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                        </svg>
+                        <span class="text-sm font-bold text-white">Success Stories</span>
+                    </div>
+                    <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4">
+                        What Our Users Say
+                    </h2>
+                    <p class="text-lg text-gray-300 max-w-2xl mx-auto">
+                        Real stories from real people earning daily on our platform
+                    </p>
+                </div>
+
+                <!-- Scrollable Testimonials Container -->
+                <div class="relative bg-white/5 backdrop-blur-xl rounded-2xl border border-white/20 overflow-hidden">
+                    <!-- Scrollable Grid -->
+                    <div
+                        ref="testimonialsContainer"
+                        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 overflow-y-auto scrollbar-custom"
+                        style="max-height: 600px;"
+                        @scroll="handleScroll"
+                    >
+                        <div
+                            v-for="(testimonial, index) in displayedTestimonials"
+                            :key="testimonial.id"
+                            class="group bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 hover:border-orange-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-orange-500/20 hover:-translate-y-2 animate-slide-up flex-shrink-0"
+                            :class="`animation-delay-${index * 100}`"
+                        >
+                            <!-- Quote Icon -->
+                            <div class="mb-4">
+                                <svg class="w-10 h-10 text-orange-400/50" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
+                                </svg>
+                            </div>
+
+                            <!-- Message -->
+                            <p class="text-gray-200 text-sm leading-relaxed mb-6 line-clamp-4">
+                                {{ testimonial.message }}
+                            </p>
+
+                            <!-- Author Info -->
+                            <div class="flex items-center gap-3 pt-4 border-t border-white/10">
+                                <div class="w-10 h-10 bg-gradient-to-br from-orange-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                    {{ getInitials(testimonial.name) }}
+                                </div>
+                                <div>
+                                    <div class="text-white font-semibold text-sm">{{ testimonial.name }}</div>
+                                    <div class="text-gray-400 text-xs">{{ testimonial.created_at }}</div>
+                                </div>
+                            </div>
+
+                            <!-- Star Rating -->
+                            <div class="flex gap-1 mt-3">
+                                <svg v-for="i in 5" :key="i" class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Load More Indicator (appears at bottom when scrolled) -->
+                    <div
+                        v-if="hasMoreTestimonials && showLoadMoreIndicator"
+                        class="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 to-transparent p-6 text-center"
+                    >
+                        <button
+                            @click="loadMoreTestimonials"
+                            :disabled="loadingMore"
+                            class="group inline-flex items-center gap-2 bg-gradient-to-r from-orange-400/20 to-purple-500/20 backdrop-blur-sm text-white px-8 py-3 rounded-xl text-sm font-bold border-2 border-orange-400/30 hover:border-orange-400 hover:bg-orange-400/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <span v-if="!loadingMore">Load More Stories</span>
+                            <span v-else>Loading...</span>
+                            <svg v-if="!loadingMore" class="w-4 h-4 group-hover:translate-y-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- No Testimonials State -->
+                <div v-if="displayedTestimonials.length === 0" class="text-center py-16">
+                    <div class="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2">No Stories Yet</h3>
+                    <p class="text-gray-400">Be the first to share your success story!</p>
+                </div>
+            </div>
+        </section>
+
         <!-- Footer -->
         <Footer :settings="settings" />
+
+        <!-- Support Widget -->
+        <SupportWidget />
     </div>
 </template>
 
@@ -496,10 +706,31 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import Header from '../Components/Header.vue';
 import Footer from '../Components/Footer.vue';
+import SupportWidget from '../Components/Support/SupportWidget.vue';
 
 const props = defineProps({
     settings: Object,
-    auth: Object
+    auth: Object,
+    testimonials: {
+        type: Array,
+        default: () => []
+    },
+    transactions: {
+        type: Array,
+        default: () => []
+    },
+    totalPaidOut: {
+        type: Number,
+        default: 0
+    },
+    totalPaidOutFormatted: {
+        type: String,
+        default: '₦0'
+    },
+    transactionCount: {
+        type: Number,
+        default: 0
+    }
 });
 
 const currentSlide = ref(0);
@@ -540,16 +771,132 @@ const slides = [
 ];
 
 let slideInterval = null;
+let transactionScrollInterval = null;
+
+// Transactions
+const transactionsContainer = ref(null);
+const displayedTransactions = ref([]);
+const totalPaidOut = ref('₦0.00');
+const displayTransactionCount = ref(0);
+
+// Initialize transactions
+const initializeTransactions = () => {
+    displayedTransactions.value = props.transactions || [];
+
+    // Use the pre-formatted abbreviated total from backend (e.g., ₦1.2M, ₦500K)
+    totalPaidOut.value = props.totalPaidOutFormatted || formatCurrency(props.totalPaidOut || 0, 'NGN');
+
+    // Use the manipulated count from backend
+    displayTransactionCount.value = props.transactionCount || displayedTransactions.value.length;
+};
+
+// Auto-scroll transactions gently
+const startTransactionAutoScroll = () => {
+    transactionScrollInterval = setInterval(() => {
+        if (transactionsContainer.value) {
+            const container = transactionsContainer.value;
+            const scrollSpeed = 1; // pixels per interval
+
+            container.scrollTop += scrollSpeed;
+
+            // Reset to top when reached bottom
+            if (container.scrollTop >= container.scrollHeight - container.clientHeight) {
+                container.scrollTop = 0;
+            }
+        }
+    }, 50); // 50ms interval for smooth scroll
+};
+
+// Format currency
+const formatCurrency = (amount, currency = 'NGN') => {
+    const symbols = {
+        'NGN': '₦',
+        'USD': '$',
+        'GHS': 'GH₵',
+        'KES': 'KSh'
+    };
+    const symbol = symbols[currency] || currency;
+    return `${symbol}${parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
+// Format transaction type
+const formatTransactionType = (type) => {
+    const formatted = type.replace(/_/g, ' ').toLowerCase();
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+};
+
+// Get initials from name (for avatar)
+const getInitials = (name) => {
+    if (!name) return 'VU';
+    const words = name.split(' ');
+    if (words.length >= 2) {
+        return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+};
+
+// Testimonials pagination
+const itemsPerPage = 6;
+const currentPage = ref(1);
+const loadingMore = ref(false);
+const showLoadMoreIndicator = ref(false);
+const testimonialsContainer = ref(null);
+
+const displayedTestimonials = ref([]);
+const hasMoreTestimonials = ref(false);
+
+// Initialize displayed testimonials
+const initializeTestimonials = () => {
+    const startIndex = 0;
+    const endIndex = itemsPerPage;
+    displayedTestimonials.value = props.testimonials.slice(startIndex, endIndex);
+    hasMoreTestimonials.value = props.testimonials.length > endIndex;
+};
+
+// Load more testimonials
+const loadMoreTestimonials = () => {
+    loadingMore.value = true;
+
+    setTimeout(() => {
+        currentPage.value++;
+        const startIndex = 0;
+        const endIndex = currentPage.value * itemsPerPage;
+        displayedTestimonials.value = props.testimonials.slice(startIndex, endIndex);
+        hasMoreTestimonials.value = props.testimonials.length > endIndex;
+        loadingMore.value = false;
+    }, 300); // Small delay for UX
+};
+
+// Handle scroll to show/hide load more button
+const handleScroll = (event) => {
+    const container = event.target;
+    const scrollTop = container.scrollTop;
+    const scrollHeight = container.scrollHeight;
+    const clientHeight = container.clientHeight;
+
+    // Show button when scrolled near bottom (within 100px)
+    showLoadMoreIndicator.value = (scrollHeight - scrollTop - clientHeight) < 100;
+};
 
 onMounted(() => {
     slideInterval = setInterval(() => {
         currentSlide.value = (currentSlide.value + 1) % slides.length;
     }, 5000);
+
+    // Initialize testimonials
+    initializeTestimonials();
+
+    // Initialize transactions and start auto-scroll
+    initializeTransactions();
+    startTransactionAutoScroll();
 });
 
 onUnmounted(() => {
     if (slideInterval) {
         clearInterval(slideInterval);
+    }
+    if (transactionScrollInterval) {
+        clearInterval(transactionScrollInterval);
     }
 });
 </script>
@@ -672,6 +1019,60 @@ onUnmounted(() => {
 
 .animation-delay-300 {
     animation-delay: 0.3s;
+}
+
+.animation-delay-400 {
+    animation-delay: 0.4s;
+}
+
+.animation-delay-500 {
+    animation-delay: 0.5s;
+}
+
+/* Line clamp utility */
+.line-clamp-4 {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Custom scrollbar */
+.scrollbar-custom::-webkit-scrollbar {
+    width: 8px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, #fb923c, #a855f7);
+    border-radius: 10px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, #f97316, #9333ea);
+}
+
+/* Green scrollbar for transactions */
+.scrollbar-custom-green::-webkit-scrollbar {
+    width: 8px;
+}
+
+.scrollbar-custom-green::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.scrollbar-custom-green::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, #4ade80, #10b981);
+    border-radius: 10px;
+}
+
+.scrollbar-custom-green::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, #22c55e, #059669);
 }
 
 @keyframes slide-up {

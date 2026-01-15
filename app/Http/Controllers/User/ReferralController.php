@@ -40,11 +40,20 @@ class ReferralController extends Controller
             'maxLevels' => $settings->referral_levels_depth,
         ];
 
+        // Network-wide statistics (only for agents)
+        $networkStats = null;
+        if ($user->isAgent()) {
+            $networkStats = $this->getNetworkStats($user->id);
+        }
+
         return Inertia::render('User/Referrals', [
             'user' => $user->load('rank'),
             'stats' => $stats,
             'treeData' => $treeData,
             'commissionRates' => $commissionRates,
+            'networkStats' => $networkStats,
+            'currencyCode' => $settings->platform_currency ?? 'NGN',
+            'currencySymbol' => \App\Helpers\CountryHelper::getCurrencySymbol($settings->country_of_operation ?? 'NGA'),
         ]);
     }
 
@@ -94,6 +103,22 @@ class ReferralController extends Controller
 
         if (!$user) return null;
 
+        // Calculate Total Earned for this user
+        $totalEarned = \DB::table('transactions')
+            ->where('user_id', $user->id)
+            ->whereIn('transaction_type', ['TASK_EARNING', 'REFERRAL_BONUS', 'TEAM_COMMISSION'])
+            ->where('status', 'COMPLETED')
+            ->where('is_credit', true)
+            ->sum('amount');
+
+        // Calculate Total Deposited for this user (including upgrades)
+        $totalDeposited = \DB::table('transactions')
+            ->where('user_id', $user->id)
+            ->whereIn('transaction_type', ['ACTIVATION_PAYMENT', 'PLAN_UPGRADE'])
+            ->where('status', 'COMPLETED')
+            ->where('is_credit', true)
+            ->sum('amount');
+
         $node = [
             'id' => $user->id,
             'name' => $user->full_name,
@@ -103,6 +128,8 @@ class ReferralController extends Controller
             'directReferrals' => $user->direct_referrals_count,
             'totalTeam' => $user->total_team_size,
             'activationDate' => $user->activation_date?->format('M d, Y'),
+            'totalEarned' => (float) $totalEarned,
+            'totalDeposited' => (float) $totalDeposited,
             'children' => []
         ];
 
@@ -124,5 +151,146 @@ class ReferralController extends Controller
         $treeData = $this->buildTreeData($userId, $depth);
 
         return response()->json(['tree' => $treeData]);
+    }
+
+    /**
+     * Get network-wide statistics for the entire referral tree
+     * Used for agents to see their network's financial performance
+     */
+    private function getNetworkStats($userId)
+    {
+        // Get all user IDs in the referral network (user + all descendants)
+        $networkUserIds = $this->getAllNetworkUserIds($userId);
+
+        // Total Deposited by entire network (including upgrades)
+        $totalNetworkDeposits = \DB::table('transactions')
+            ->whereIn('user_id', $networkUserIds)
+            ->whereIn('transaction_type', ['ACTIVATION_PAYMENT', 'PLAN_UPGRADE'])
+            ->where('status', 'COMPLETED')
+            ->where('is_credit', true)
+            ->sum('amount');
+
+        // Total Withdrawals by entire network
+        $totalNetworkWithdrawals = \DB::table('transactions')
+            ->whereIn('user_id', $networkUserIds)
+            ->where('transaction_type', 'WITHDRAWAL')
+            ->where('status', 'COMPLETED')
+            ->where('is_credit', false)
+            ->sum('amount');
+
+        // Net Gain for the parent
+        $netGain = $totalNetworkDeposits - $totalNetworkWithdrawals;
+
+        // Additional breakdown stats
+        $totalActivations = \DB::table('transactions')
+            ->whereIn('user_id', $networkUserIds)
+            ->where('transaction_type', 'ACTIVATION_PAYMENT')
+            ->where('status', 'COMPLETED')
+            ->sum('amount');
+
+        $totalUpgrades = \DB::table('transactions')
+            ->whereIn('user_id', $networkUserIds)
+            ->where('transaction_type', 'PLAN_UPGRADE')
+            ->where('status', 'COMPLETED')
+            ->sum('amount');
+
+        $totalTaskEarnings = \DB::table('transactions')
+            ->whereIn('user_id', $networkUserIds)
+            ->where('transaction_type', 'TASK_EARNING')
+            ->where('status', 'COMPLETED')
+            ->sum('amount');
+
+        $totalReferralBonuses = \DB::table('transactions')
+            ->whereIn('user_id', $networkUserIds)
+            ->where('transaction_type', 'REFERRAL_BONUS')
+            ->where('status', 'COMPLETED')
+            ->sum('amount');
+
+        $totalTeamCommissions = \DB::table('transactions')
+            ->whereIn('user_id', $networkUserIds)
+            ->where('transaction_type', 'TEAM_COMMISSION')
+            ->where('status', 'COMPLETED')
+            ->sum('amount');
+
+        return [
+            'totalNetworkDeposits' => (float) $totalNetworkDeposits,
+            'totalNetworkWithdrawals' => (float) $totalNetworkWithdrawals,
+            'netGain' => (float) $netGain,
+            'totalActivations' => (float) $totalActivations,
+            'totalUpgrades' => (float) $totalUpgrades,
+            'totalTaskEarnings' => (float) $totalTaskEarnings,
+            'totalReferralBonuses' => (float) $totalReferralBonuses,
+            'totalTeamCommissions' => (float) $totalTeamCommissions,
+            'networkSize' => count($networkUserIds),
+        ];
+    }
+
+    /**
+     * Get all user IDs in the referral network (including the parent)
+     */
+    private function getAllNetworkUserIds($userId)
+    {
+        $userIds = [$userId]; // Start with the parent
+
+        // Get all descendants recursively
+        $descendants = \App\Models\User::where('id', $userId)
+            ->first()
+            ?->directReferrals()
+            ->pluck('id')
+            ->toArray() ?? [];
+
+        foreach ($descendants as $descendantId) {
+            $userIds = array_merge($userIds, $this->getAllNetworkUserIds($descendantId));
+        }
+
+        return array_unique($userIds);
+    }
+
+    /**
+     * Hardwork Stats Page (Agents Only)
+     * Comprehensive analytics dashboard for agent's referral network
+     */
+    public function hardworkStats()
+    {
+        $user = auth()->user();
+        $settings = GlobalSetting::first();
+
+        // Only agents can access this page
+        if (!$user->isAgent()) {
+            return redirect()->route('user.referrals')
+                ->with('error', 'This page is only accessible to agents.');
+        }
+
+        // Get comprehensive network stats
+        $networkStats = $this->getNetworkStats($user->id);
+
+        // Calculate additional performance metrics
+        $totalEarnings = $networkStats['totalTaskEarnings'] +
+                        $networkStats['totalReferralBonuses'] +
+                        $networkStats['totalTeamCommissions'];
+
+        $avgDepositPerMember = $networkStats['networkSize'] > 0
+            ? $networkStats['totalNetworkDeposits'] / $networkStats['networkSize']
+            : 0;
+
+        $avgEarningsPerMember = $networkStats['networkSize'] > 0
+            ? $totalEarnings / $networkStats['networkSize']
+            : 0;
+
+        $retentionRate = $networkStats['totalNetworkDeposits'] > 0
+            ? (($networkStats['totalNetworkDeposits'] - $networkStats['totalNetworkWithdrawals']) / $networkStats['totalNetworkDeposits']) * 100
+            : 0;
+
+        $stats = array_merge($networkStats, [
+            'totalEarnings' => $totalEarnings,
+            'avgDepositPerMember' => round($avgDepositPerMember, 2),
+            'avgEarningsPerMember' => round($avgEarningsPerMember, 2),
+            'retentionRate' => round($retentionRate, 1),
+        ]);
+
+        return Inertia::render('User/HardworkStats', [
+            'stats' => $stats,
+            'currencySymbol' => \App\Helpers\CountryHelper::getCurrencySymbol($settings->country_of_operation ?? 'NGA'),
+        ]);
     }
 }

@@ -21,7 +21,7 @@ class GenerateTaskTemplates extends Command
      *
      * @var string
      */
-    protected $description = 'Generate task templates using AI with batch processing and rate limiting';
+    protected $description = 'Generate task templates from content pool (instant, no API calls)';
 
     protected $taskGenerator;
 
@@ -81,43 +81,28 @@ class GenerateTaskTemplates extends Command
         $countryName = $country['name'] ?? 'Nigeria';
 
         try {
-            // Videos - immediate
+            // Videos - INSTANT (from pool, no API)
             if ($videoCount > 0) {
                 $this->info("🎬 Generating {$videoCount} video tasks...");
                 $generated['videos'] = $this->taskGenerator->generateVideoTasks($countryCode, $videoCount);
                 $this->info("  ✓ Generated {$generated['videos']} videos");
-
-                if ($surveyCount > 0 || $reviewCount > 0 || $syncCount > 0) {
-                    $this->info("  ⏱ Waiting 60s before next batch...");
-                    sleep(60);
-                }
             }
 
-            // Surveys - after 60s
+            // Surveys - INSTANT (from pool, no API)
             if ($surveyCount > 0) {
                 $this->info("📋 Generating {$surveyCount} survey tasks...");
                 $generated['surveys'] = $this->taskGenerator->generateSurveys($countryName, $surveyCount);
                 $this->info("  ✓ Generated {$generated['surveys']} surveys");
-
-                if ($reviewCount > 0 || $syncCount > 0) {
-                    $this->info("  ⏱ Waiting 60s before next batch...");
-                    sleep(60);
-                }
             }
 
-            // Reviews - after another 60s
+            // Reviews - INSTANT (from pool, no API)
             if ($reviewCount > 0) {
                 $this->info("⭐ Generating {$reviewCount} review tasks...");
                 $generated['reviews'] = $this->taskGenerator->generateProductReviews($countryName, $reviewCount);
                 $this->info("  ✓ Generated {$generated['reviews']} reviews");
-
-                if ($syncCount > 0) {
-                    $this->info("  ⏱ Waiting 60s before next batch...");
-                    sleep(60);
-                }
             }
 
-            // Syncs - after another 60s
+            // Syncs - INSTANT (static templates)
             if ($syncCount > 0) {
                 $this->info("🔄 Generating {$syncCount} sync tasks...");
                 $generated['syncs'] = $this->taskGenerator->generateSyncTasks($syncCount);

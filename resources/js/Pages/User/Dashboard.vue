@@ -13,9 +13,36 @@
 
         <div class="relative z-10">
           <p class="text-white/80 text-sm font-medium mb-1">{{ getGreeting() }}</p>
-          <h1 class="text-white text-2xl md:text-3xl font-bold tracking-tight">
-            {{ user.full_name }}
-          </h1>
+          <div class="flex items-center gap-2">
+            <h1 class="text-white text-2xl md:text-3xl font-bold tracking-tight">
+              {{ user.full_name }}
+            </h1>
+            <!-- Instagram-style Verification Badge & King Icon -->
+            <div v-if="user.kyc_verified_at" class="flex items-center gap-1.5">
+              <!-- Blue Verification Badge -->
+              <div class="relative group">
+                <svg class="w-6 h-6 md:w-7 md:h-7 text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                <!-- Tooltip -->
+                <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+                  Verified User
+                  <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-black/90"></div>
+                </div>
+              </div>
+              <!-- Golden King Icon -->
+              <div class="relative group">
+                <svg class="w-6 h-6 md:w-7 md:h-7 text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.7)] animate-pulse" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2L15 8.5L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L9 8.5L12 2Z" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <!-- Tooltip -->
+                <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+                  Verified Account
+                  <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-black/90"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

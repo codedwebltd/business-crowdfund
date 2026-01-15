@@ -12,11 +12,21 @@ use Exception;
 class AITaskGeneratorService
 {
     protected $groqService;
+    protected $questionPoolService;
+    protected $triviaApiService;
+    protected $contentPool;
     protected $settings;
 
-    public function __construct(GroqService $groqService)
-    {
+    public function __construct(
+        GroqService $groqService,
+        QuestionPoolService $questionPoolService,
+        TriviaAPIService $triviaApiService,
+        ContentPoolService $contentPool
+    ) {
         $this->groqService = $groqService;
+        $this->questionPoolService = $questionPoolService;
+        $this->triviaApiService = $triviaApiService;
+        $this->contentPool = $contentPool;
         $this->settings = null;
     }
 
@@ -30,6 +40,10 @@ class AITaskGeneratorService
 
     /**
      * Check if task generation is needed
+     *
+     * Generation is triggered when EITHER condition is met:
+     * 1. Active tasks below threshold (min_task_templates_threshold)
+     * 2. Enough time has passed since last generation (ai_generation_frequency_hours)
      */
     public function shouldGenerateTasks()
     {
@@ -40,6 +54,7 @@ class AITaskGeneratorService
             return false;
         }
 
+        // Check 1: Task count threshold
         $activeTaskCount = TaskTemplate::active()->available()->count();
         $threshold = $settings->min_task_templates_threshold ?? 50;
 
@@ -48,7 +63,23 @@ class AITaskGeneratorService
             return true;
         }
 
-        Log::info("Task generation not needed: {$activeTaskCount} tasks >= {$threshold} threshold");
+        // Check 2: Time since last generation
+        $frequencyHours = $settings->ai_generation_frequency_hours ?? 24;
+        $lastGeneration = TaskTemplate::orderBy('created_at', 'DESC')->first();
+
+        if (!$lastGeneration) {
+            Log::info('Task generation needed: No tasks exist yet');
+            return true;
+        }
+
+        $hoursSinceLastGeneration = now()->diffInHours($lastGeneration->created_at);
+
+        if ($hoursSinceLastGeneration >= $frequencyHours) {
+            Log::info("Task generation needed: {$hoursSinceLastGeneration} hours since last generation (threshold: {$frequencyHours}h)");
+            return true;
+        }
+
+        Log::info("Task generation not needed: {$activeTaskCount} tasks >= {$threshold} threshold AND only {$hoursSinceLastGeneration}h since last generation (need {$frequencyHours}h)");
         return false;
     }
 
@@ -117,104 +148,122 @@ class AITaskGeneratorService
     }
 
     /**
-     * Generate survey tasks using AI
+     * Generate survey tasks from content pool (INSTANT - no API calls!)
      */
     public function generateSurveys($country, $count)
     {
         $generated = 0;
 
-        for ($i = 0; $i < $count; $i++) {
-            $surveyData = $this->groqService->generateSurvey($country, rand(8, 15));
+        // Get reward range from settings
+        $settings = $this->getSettings();
+        $rewardRange = $settings->ai_configuration['reward_ranges']['survey'] ?? ['min' => 30, 'max' => 100];
 
-            if (!$surveyData || !isset($surveyData['title'], $surveyData['questions'])) {
-                Log::warning("Failed to generate survey {$i}");
+        // POOL-BASED: Pull from content pool (instant, no API calls)
+        $surveys = $this->contentPool->getFromPool('SURVEY', $count);
+
+        if (empty($surveys)) {
+            Log::warning("Content pool is empty for SURVEY. Run 'content:fill-pool' command.");
+            return 0;
+        }
+
+        Log::info("Pulled {$surveys->count()} surveys from content pool");
+
+        // Create task templates from pool
+        foreach ($surveys as $poolItem) {
+            // Content is already an array (model cast)
+            $surveyData = $poolItem->content;
+
+            if (!isset($surveyData['questions'])) {
+                Log::warning("Invalid survey data in pool", ['id' => $poolItem->id]);
                 continue;
             }
-
-            // Get reward range from settings
-            $settings = $this->getSettings();
-            $rewardRange = $settings->ai_configuration['reward_ranges']['survey'] ?? ['min' => 30, 'max' => 100];
 
             // Create task template
             $task = TaskTemplate::create([
                 'category' => 'SURVEY',
-                'title' => substr($surveyData['title'], 0, 255),
+                'title' => $poolItem->title,
                 'description' => $surveyData['description'] ?? 'Complete this survey to earn rewards',
                 'questions' => $surveyData['questions'],
                 'reward_amount' => rand($rewardRange['min'], $rewardRange['max']),
                 'completion_time_seconds' => count($surveyData['questions']) * 20, // ~20 seconds per question
-                'is_active' => true, // Admin must review and activate
+                'is_active' => true,
                 'priority' => rand(1, 10),
-                'max_completions' => rand(500, 2000),
+                'max_completions' => rand(20, 150),
                 'min_rank_id' => null,
                 'available_from' => now(),
                 'available_until' => now()->addMonths(3),
             ]);
 
+            // Mark as used in pool
+            $poolItem->increment('times_used');
+            $poolItem->update(['last_used_at' => now()]);
+
             $generated++;
-            Log::info("Generated survey task", ['id' => $task->id, 'title' => $task->title]);
+            Log::info("Generated survey task from pool", ['id' => $task->id, 'title' => $task->title, 'pool_id' => $poolItem->id]);
         }
 
         return $generated;
     }
 
     /**
-     * Generate video watch tasks using YouTube API
+     * Generate video watch tasks from content pool (INSTANT - no API calls!)
      */
     public function generateVideoTasks($countryCode, $count)
     {
         $generated = 0;
 
-        try {
-            // Fetch YouTube trending videos
-            $videos = $this->fetchYouTubeTrending($countryCode, $count);
+        // POOL-BASED: Pull from content pool (instant, no API calls)
+        $videos = $this->contentPool->getFromPool('VIDEO', $count);
 
-            foreach ($videos as $video) {
-                // Generate verification questions using AI
-                $questions = $this->groqService->generateVideoQuestions(
-                    $video['title'],
-                    $video['description'] ?? '',
-                    5
-                );
+        if ($videos->isEmpty()) {
+            Log::warning("Content pool is empty for VIDEO. Run 'content:fill-pool' command.");
+            return 0;
+        }
 
-                if (!$questions || !isset($questions['questions'])) {
-                    Log::warning("Failed to generate questions for video: {$video['title']}");
-                    continue;
-                }
+        Log::info("Pulled {$videos->count()} videos from content pool");
 
-                $settings = $this->getSettings();
-                $rewardRange = $settings->ai_configuration['reward_ranges']['video'] ?? ['min' => 150, 'max' => 400];
+        $settings = $this->getSettings();
+        $rewardRange = $settings->ai_configuration['reward_ranges']['video'] ?? ['min' => 150, 'max' => 400];
 
-                $task = TaskTemplate::create([
-                    'category' => 'VIDEO',
-                    'title' => 'Watch: ' . substr($video['title'], 0, 200),
-                    'description' => 'Watch this video and answer questions to verify',
-                    'video_url' => 'https://www.youtube.com/embed/' . $video['video_id'],
-                    'video_duration_seconds' => $video['duration'] ?? 300,
-                    'questions' => $questions['questions'], // Verification questions
-                    'reward_amount' => rand($rewardRange['min'], $rewardRange['max']),
-                    'completion_time_seconds' => ($video['duration'] ?? 300) + 60, // Video + questions
-                    'is_active' => true,
-                    'priority' => rand(1, 10),
-                    'max_completions' => rand(300, 1000),
-                    'min_rank_id' => null,
-                    'available_from' => now(),
-                    'available_until' => now()->addMonths(2),
-                ]);
+        foreach ($videos as $poolItem) {
+            // Content is already an array (model cast)
+            $videoData = $poolItem->content;
 
-                $generated++;
-                Log::info("Generated video task", ['id' => $task->id, 'video_id' => $video['video_id']]);
+            if (!isset($videoData['video_url'], $videoData['questions'])) {
+                Log::warning("Invalid video data in pool", ['id' => $poolItem->id]);
+                continue;
             }
 
-        } catch (Exception $e) {
-            Log::error('YouTube API failed', ['error' => $e->getMessage()]);
+            $task = TaskTemplate::create([
+                'category' => 'VIDEO',
+                'title' => $poolItem->title,
+                'description' => $videoData['description'] ?? 'Watch this video and answer questions to verify',
+                'video_url' => $videoData['video_url'],
+                'video_duration_seconds' => $videoData['video_duration'] ?? 300,
+                'questions' => $videoData['questions'],
+                'reward_amount' => rand($rewardRange['min'], $rewardRange['max']),
+                'completion_time_seconds' => ($videoData['video_duration'] ?? 300) + 60,
+                'is_active' => true,
+                'priority' => rand(1, 10),
+                'max_completions' => rand(20, 150),
+                'min_rank_id' => null,
+                'available_from' => now(),
+                'available_until' => now()->addMonths(2),
+            ]);
+
+            // Mark as used in pool
+            $poolItem->increment('times_used');
+            $poolItem->update(['last_used_at' => now()]);
+
+            $generated++;
+            Log::info("Generated video task from pool", ['id' => $task->id, 'pool_id' => $poolItem->id]);
         }
 
         return $generated;
     }
 
     /**
-     * Generate sync tasks (template-based)
+     * Generate sync tasks (template-based with rotation for scalability)
      */
     public function generateSyncTasks($count)
     {
@@ -226,13 +275,52 @@ class AITaskGeneratorService
             ['title' => 'Device Security Scan', 'description' => 'Scan device for security insights'],
             ['title' => 'Battery Usage Report', 'description' => 'Share battery consumption patterns'],
             ['title' => 'Screen Time Analysis', 'description' => 'Sync your daily screen time data'],
+            ['title' => 'Mobile Data Usage Report', 'description' => 'Share your mobile data consumption patterns'],
+            ['title' => 'WiFi Connection Quality Check', 'description' => 'Analyze your WiFi connection stability'],
+            ['title' => 'Device Storage Analysis', 'description' => 'Share device storage usage insights'],
+            ['title' => 'Browser Cache Data Sync', 'description' => 'Sync browser performance metrics'],
+            ['title' => 'Location Sharing Insights', 'description' => 'Share location data for service improvement'],
+            ['title' => 'Call Log Analytics', 'description' => 'Analyze call patterns for research'],
+            ['title' => 'SMS Usage Patterns', 'description' => 'Share SMS usage statistics'],
+            ['title' => 'Bluetooth Device Scan', 'description' => 'Scan and share connected Bluetooth devices'],
+            ['title' => 'Device Sensor Data Sync', 'description' => 'Share device sensor readings'],
+            ['title' => 'Notification History Analysis', 'description' => 'Analyze your notification patterns'],
+            ['title' => 'RAM Usage Report', 'description' => 'Share device RAM consumption data'],
+            ['title' => 'CPU Performance Metrics', 'description' => 'Share CPU usage statistics'],
+            ['title' => 'App Permissions Audit', 'description' => 'Audit and share app permissions data'],
+            ['title' => 'Device Temperature Monitoring', 'description' => 'Share device temperature readings'],
+            ['title' => 'Audio Output Quality Test', 'description' => 'Test and share audio performance data'],
         ];
 
         $settings = $this->getSettings();
         $syncReward = $settings->ai_configuration['reward_ranges']['sync']['fixed'] ?? 200;
 
-        for ($i = 0; $i < min($count, count($syncTemplates)); $i++) {
-            $template = $syncTemplates[$i];
+        // Shuffle templates for randomness
+        shuffle($syncTemplates);
+        $templateIndex = 0;
+
+        // Loop until we generate the required count
+        while ($generated < $count) {
+            // Get next template (loop back if exhausted)
+            $template = $syncTemplates[$templateIndex % count($syncTemplates)];
+            $templateIndex++;
+
+            // DUPLICATE PREVENTION: Skip if this sync task already exists in last 30 days
+            $existingSync = TaskTemplate::where('category', 'APP_SYNC')
+                ->where('title', $template['title'])
+                ->where('created_at', '>=', now()->subDays(30))
+                ->exists();
+
+            if ($existingSync) {
+                Log::info("Skipping duplicate sync task", ['title' => $template['title']]);
+
+                // Reshuffle if we've gone through all templates without success
+                if ($templateIndex >= count($syncTemplates)) {
+                    Log::warning("All sync templates are duplicates. Stopping generation.");
+                    break;
+                }
+                continue;
+            }
 
             $task = TaskTemplate::create([
                 'category' => 'APP_SYNC',
@@ -244,7 +332,7 @@ class AITaskGeneratorService
                 'completion_time_seconds' => 60,
                 'is_active' => true,
                 'priority' => rand(1, 10),
-                'max_completions' => rand(1000, 5000),
+                'max_completions' => rand(20, 150),
                 'min_rank_id' => null,
                 'available_from' => now(),
                 'available_until' => now()->addMonths(6),
@@ -258,46 +346,125 @@ class AITaskGeneratorService
     }
 
     /**
-     * Generate product review tasks using AI
+     * Generate product review tasks from content pool (INSTANT - no API calls!)
      */
     public function generateProductReviews($country, $count)
     {
         $generated = 0;
 
-        // Generate product names using AI
-        $productData = $this->groqService->generateProductNames($country, $count);
+        // POOL-BASED: Pull from content pool (instant, no API calls)
+        $reviews = $this->contentPool->getFromPool('REVIEW', $count);
 
-        if (!$productData || !isset($productData['products'])) {
-            Log::warning('Failed to generate product names');
+        if ($reviews->isEmpty()) {
+            Log::warning("Content pool is empty for REVIEW. Run 'content:fill-pool' command.");
             return 0;
         }
+
+        Log::info("Pulled {$reviews->count()} reviews from content pool");
 
         $settings = $this->getSettings();
         $rewardRange = $settings->ai_configuration['reward_ranges']['review'] ?? ['min' => 50, 'max' => 80];
 
-        foreach ($productData['products'] as $product) {
+        foreach ($reviews as $poolItem) {
+            // Content is already an array (model cast)
+            $reviewData = $poolItem->content;
+
+            if (!isset($reviewData['product_name'])) {
+                Log::warning("Invalid review data in pool", ['id' => $poolItem->id]);
+                continue;
+            }
+
             $task = TaskTemplate::create([
                 'category' => 'PRODUCT_REVIEW',
-                'title' => 'Review: ' . $product['name'],
-                'description' => "Share your honest review of {$product['name']}",
-                'product_name' => $product['name'],
-                'product_category' => $product['category'] ?? 'General',
-                'review_min_characters' => 20,
+                'title' => $poolItem->title,
+                'description' => $reviewData['description'] ?? "Share your honest review of {$reviewData['product_name']}",
+                'product_name' => $reviewData['product_name'],
+                'product_category' => $reviewData['product_category'] ?? 'General',
+                'review_min_characters' => $reviewData['review_min_characters'] ?? 20,
                 'reward_amount' => rand($rewardRange['min'], $rewardRange['max']),
                 'completion_time_seconds' => 120,
                 'is_active' => true,
                 'priority' => rand(1, 10),
-                'max_completions' => rand(200, 800),
+                'max_completions' => rand(20, 150),
                 'min_rank_id' => null,
                 'available_from' => now(),
                 'available_until' => now()->addMonths(3),
             ]);
 
+            // Mark as used in pool
+            $poolItem->increment('times_used');
+            $poolItem->update(['last_used_at' => now()]);
+
             $generated++;
-            Log::info("Generated review task", ['id' => $task->id, 'product' => $product['name']]);
+            Log::info("Generated review task from pool", ['id' => $task->id, 'pool_id' => $poolItem->id]);
         }
 
         return $generated;
+    }
+
+    /**
+     * Get static product pool as fallback when Groq fails
+     */
+    protected function getStaticProductPool($country, $count)
+    {
+        $productPool = [
+            ['name' => 'MTN Nigeria', 'category' => 'Telecommunications'],
+            ['name' => 'Glo Mobile', 'category' => 'Telecommunications'],
+            ['name' => 'Airtel Nigeria', 'category' => 'Telecommunications'],
+            ['name' => '9Mobile', 'category' => 'Telecommunications'],
+            ['name' => 'OPay', 'category' => 'FinTech'],
+            ['name' => 'PalmPay', 'category' => 'FinTech'],
+            ['name' => 'Kuda Bank', 'category' => 'Banking'],
+            ['name' => 'Moniepoint', 'category' => 'FinTech'],
+            ['name' => 'Paystack', 'category' => 'Payment'],
+            ['name' => 'Flutterwave', 'category' => 'Payment'],
+            ['name' => 'Jumia Nigeria', 'category' => 'E-commerce'],
+            ['name' => 'Konga', 'category' => 'E-commerce'],
+            ['name' => 'Jiji Nigeria', 'category' => 'E-commerce'],
+            ['name' => 'DStv', 'category' => 'Entertainment'],
+            ['name' => 'GOtv', 'category' => 'Entertainment'],
+            ['name' => 'Showmax', 'category' => 'Streaming'],
+            ['name' => 'Netflix Nigeria', 'category' => 'Streaming'],
+            ['name' => 'Spotify Nigeria', 'category' => 'Music'],
+            ['name' => 'Boomplay', 'category' => 'Music'],
+            ['name' => 'Uber Nigeria', 'category' => 'Ride-hailing'],
+            ['name' => 'Bolt Nigeria', 'category' => 'Ride-hailing'],
+            ['name' => 'Indomie Noodles', 'category' => 'Food'],
+            ['name' => 'Dangote Cement', 'category' => 'Building Materials'],
+            ['name' => 'Peak Milk', 'category' => 'Dairy'],
+            ['name' => 'Milo', 'category' => 'Beverages'],
+            ['name' => 'Golden Penny Flour', 'category' => 'Food'],
+            ['name' => 'Maggi Seasoning', 'category' => 'Food'],
+            ['name' => 'Coca-Cola Nigeria', 'category' => 'Beverages'],
+            ['name' => 'Tecno Mobile', 'category' => 'Electronics'],
+            ['name' => 'Infinix', 'category' => 'Electronics'],
+            ['name' => 'Samsung Nigeria', 'category' => 'Electronics'],
+            ['name' => 'HP Laptops Nigeria', 'category' => 'Electronics'],
+            ['name' => 'LG Electronics', 'category' => 'Electronics'],
+            ['name' => 'WhatsApp', 'category' => 'Social Media'],
+            ['name' => 'Instagram', 'category' => 'Social Media'],
+            ['name' => 'TikTok', 'category' => 'Social Media'],
+            ['name' => 'Facebook', 'category' => 'Social Media'],
+            ['name' => 'Twitter (X)', 'category' => 'Social Media'],
+            ['name' => 'Shoprite Nigeria', 'category' => 'Retail'],
+            ['name' => 'Spar Nigeria', 'category' => 'Retail'],
+            ['name' => 'Mr Biggs', 'category' => 'Fast Food'],
+            ['name' => 'Chicken Republic', 'category' => 'Fast Food'],
+            ['name' => 'Dominos Pizza Nigeria', 'category' => 'Fast Food'],
+            ['name' => 'KFC Nigeria', 'category' => 'Fast Food'],
+            ['name' => 'Zenith Bank', 'category' => 'Banking'],
+            ['name' => 'GTBank', 'category' => 'Banking'],
+            ['name' => 'Access Bank', 'category' => 'Banking'],
+            ['name' => 'First Bank Nigeria', 'category' => 'Banking'],
+            ['name' => 'UBA', 'category' => 'Banking'],
+            ['name' => 'Ecobank Nigeria', 'category' => 'Banking'],
+        ];
+
+        // Shuffle and take requested count
+        shuffle($productPool);
+        $selectedProducts = array_slice($productPool, 0, min($count, count($productPool)));
+
+        return ['products' => $selectedProducts];
     }
 
     /**

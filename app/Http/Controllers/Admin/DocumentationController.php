@@ -16,6 +16,11 @@ class DocumentationController extends Controller
 
     public function show($slug)
     {
+        // Global Settings uses a dedicated Vue component
+        if ($slug === 'global-settings') {
+            return Inertia::render('Admin/Documentation/GlobalSettings');
+        }
+
         $allDocs = $this->getAllDocs(false); // For sidebar, no content needed
         $doc = $this->getDocBySlug($slug); // Get single doc with content
 
@@ -30,6 +35,13 @@ class DocumentationController extends Controller
     protected function getAllDocs($includeContent = false)
     {
         $docs = [
+            [
+                'title' => 'Global Settings - Complete Reference',
+                'slug' => 'global-settings',
+                'category' => 'Configuration',
+                'icon' => '⚙️',
+                'description' => 'Complete guide to all 15 settings tabs including AI, financial, fraud detection, KYC, notifications, and more',
+            ],
             [
                 'title' => 'Groq AI Task Generator - Complete Setup',
                 'slug' => 'groq-task-generator',

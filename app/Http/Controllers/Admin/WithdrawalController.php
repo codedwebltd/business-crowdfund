@@ -61,6 +61,9 @@ class WithdrawalController extends Controller
             'approved_by_id' => auth()->id(),
         ]);
 
+        // Update user wallet - increment total_withdrawn
+        $withdrawal->user->wallet->increment('total_withdrawn', $withdrawal->amount_requested);
+
         // Update associated transaction
         if ($withdrawal->transaction) {
             $withdrawal->transaction->update(['status' => 'COMPLETED']);

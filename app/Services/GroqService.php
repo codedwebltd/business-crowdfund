@@ -26,7 +26,7 @@ class GroqService
     }
 
     /**
-     * Generate content using Groq AI
+     * Generate content using Groq AI with retry logic
      *
      * @param string $systemPrompt
      * @param string $userPrompt
@@ -51,49 +51,78 @@ class GroqService
             return null;
         }
 
-        try {
-            $response = Http::timeout(30)
-                ->withHeaders([
-                    'Authorization' => 'Bearer ' . $aiConfig['groq_api_key'],
-                    'Content-Type' => 'application/json',
-                ])
-                ->post($aiConfig['groq_endpoint'], [
-                    'model' => $aiConfig['groq_model'] ?? 'llama-3.1-8b-instant',
-                    'messages' => [
-                        ['role' => 'system', 'content' => $systemPrompt],
-                        ['role' => 'user', 'content' => $userPrompt]
-                    ],
-                    'max_tokens' => $maxTokens ?? 2000,
-                    'temperature' => $temperature ?? ($aiConfig['temperature'] ?? 0.7),
-                ]);
+        // Retry logic: 3 attempts with exponential backoff
+        $maxAttempts = 3;
+        $baseDelay = 3; // seconds
 
-            if ($response->successful()) {
-                $data = $response->json();
-                $content = $data['choices'][0]['message']['content'] ?? null;
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                Log::info("Groq API attempt {$attempt}/{$maxAttempts}");
 
-                if ($content) {
-                    Log::info('Groq AI generation successful', [
-                        'prompt_length' => strlen($userPrompt),
-                        'response_length' => strlen($content)
+                $response = Http::timeout(60) // Increased from 30s to 60s for scalability
+                    ->withHeaders([
+                        'Authorization' => 'Bearer ' . $aiConfig['groq_api_key'],
+                        'Content-Type' => 'application/json',
+                    ])
+                    ->post($aiConfig['groq_endpoint'], [
+                        'model' => $aiConfig['groq_model'] ?? 'llama-3.1-8b-instant',
+                        'messages' => [
+                            ['role' => 'system', 'content' => $systemPrompt],
+                            ['role' => 'user', 'content' => $userPrompt]
+                        ],
+                        'max_tokens' => $maxTokens ?? 2000,
+                        'temperature' => $temperature ?? ($aiConfig['temperature'] ?? 0.7),
                     ]);
-                    return trim($content);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $content = $data['choices'][0]['message']['content'] ?? null;
+
+                    if ($content) {
+                        Log::info('Groq AI generation successful', [
+                            'attempt' => $attempt,
+                            'prompt_length' => strlen($userPrompt),
+                            'response_length' => strlen($content)
+                        ]);
+                        return trim($content);
+                    }
+                } else {
+                    Log::warning('Groq API request failed', [
+                        'attempt' => $attempt,
+                        'status' => $response->status(),
+                        'body' => substr($response->body(), 0, 200)
+                    ]);
                 }
-            } else {
-                Log::error('Groq API request failed', [
-                    'status' => $response->status(),
-                    'body' => $response->body()
+
+                // If not successful and not last attempt, wait before retrying
+                if ($attempt < $maxAttempts) {
+                    $delay = $baseDelay * pow(2, $attempt - 1); // Exponential backoff: 3s, 6s
+                    Log::info("Retrying in {$delay}s...");
+                    sleep($delay);
+                }
+
+            } catch (Exception $e) {
+                Log::warning('Error calling Groq API', [
+                    'attempt' => $attempt,
+                    'error' => $e->getMessage()
                 ]);
+
+                // If not last attempt, wait before retrying
+                if ($attempt < $maxAttempts) {
+                    $delay = $baseDelay * pow(2, $attempt - 1);
+                    Log::info("Retrying in {$delay}s after exception...");
+                    sleep($delay);
+                } else {
+                    Log::error('All Groq API attempts failed', [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                }
             }
-
-            return null;
-
-        } catch (Exception $e) {
-            Log::error('Error calling Groq API', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return null;
         }
+
+        Log::error('Groq API failed after all retry attempts');
+        return null;
     }
 
     /**
@@ -152,6 +181,12 @@ class GroqService
 
         $userPrompt = "Generate 1 survey with {$questionCount} multiple choice questions about daily life, technology usage, or consumer habits in {$country}.
 
+CRITICAL INSTRUCTIONS:
+1. Each question MUST have exactly 5 options
+2. The 5th option MUST ALWAYS be \"None of the above\"
+3. Questions should be relevant to {$country} (use local brands, habits, locations)
+4. Mix question types: preferences, frequency, ratings
+
 Return ONLY this exact JSON structure with no additional text:
 {
   \"title\": \"Survey title (max 100 chars)\",
@@ -161,12 +196,10 @@ Return ONLY this exact JSON structure with no additional text:
       \"id\": 1,
       \"text\": \"Question text\",
       \"type\": \"single_choice\",
-      \"options\": [\"Option 1\", \"Option 2\", \"Option 3\", \"Option 4\"]
+      \"options\": [\"Option 1\", \"Option 2\", \"Option 3\", \"Option 4\", \"None of the above\"]
     }
   ]
-}
-
-Make questions relevant to {$country} (use local brands, habits, locations). Mix question types: preferences, frequency, ratings.";
+}";
 
         return $this->generateJSON($systemPrompt, $userPrompt, $maxTokens);
     }

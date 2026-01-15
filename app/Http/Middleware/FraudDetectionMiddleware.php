@@ -21,6 +21,12 @@ class FraudDetectionMiddleware
     {
         if (auth()->check()) {
             $user = auth()->user();
+
+            // Skip fraud detection for admins (role_id = 1)
+            if ($user->role_id == 1) {
+                return $next($request);
+            }
+
             $deviceData = $this->fraudService->extractLocationData();
             $currentIP = $deviceData['ip'] ?? $request->ip();
 

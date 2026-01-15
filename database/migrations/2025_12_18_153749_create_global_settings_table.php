@@ -178,6 +178,8 @@ return new class extends Migration
              */
             $table->integer('ai_generation_frequency_hours')->default(168); // Weekly
             $table->integer('min_task_templates_threshold')->default(50);
+            $table->integer('task_deactivation_days')->default(7)->comment('Days before tasks are deactivated (is_active = false)');
+            $table->integer('task_deletion_days')->default(30)->comment('Days before tasks are permanently deleted');
 
             // ==================== PAYMENT GATEWAYS ====================
             $table->json('payment_gateways')->nullable();
@@ -251,6 +253,8 @@ return new class extends Migration
 
             // ==================== SYSTEM CONTROLS ====================
             $table->boolean('maintenance_mode')->default(false);
+            $table->dateTime('maintenance_end_at')->nullable()->comment('When maintenance mode will end');
+            $table->json('admin_ip_whitelist')->nullable()->comment('IP addresses/ranges allowed to bypass maintenance and access admin');
             $table->boolean('new_registrations_enabled')->default(true);
             $table->boolean('withdrawals_enabled')->default(true);
             $table->boolean('referral_bonuses_enabled')->default(true);

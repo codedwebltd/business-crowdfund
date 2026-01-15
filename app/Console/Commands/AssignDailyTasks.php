@@ -42,7 +42,7 @@ class AssignDailyTasks extends Command
         $assigned = 0;
         $errors = 0;
         $batchJobs = [];
-        $userTaskCounts = [];
+        $userTaskData = []; // Store both count and task template IDs for urgency
 
         $this->info("Preparing batch jobs for {$users->count()} users...");
         $progressBar = $this->output->createProgressBar($users->count());
@@ -88,9 +88,19 @@ class AssignDailyTasks extends Command
                     $query = TaskTemplate::active()
                         ->available()
                         ->byCategory($category)
+                        // AGE-BASED ASSIGNMENT: Only assign tasks created in last 48 hours
+                        ->where('created_at', '>=', now()->subHours(48))
                         ->where(function($q) use ($user) {
                             $q->whereNull('min_rank_id')
                               ->orWhere('min_rank_id', '<=', $user->rank_id ?? 1);
+                        })
+                        // PREVENT REPEATS: Exclude tasks user completed in last 7 days
+                        ->whereNotIn('id', function($q) use ($user) {
+                            $q->select('task_template_id')
+                              ->from('user_tasks')
+                              ->where('user_id', $user->id)
+                              ->where('status', 'COMPLETED')
+                              ->where('completed_at', '>=', now()->subDays(7));
                         });
 
                     // Performance-based task assignment:
@@ -118,7 +128,10 @@ class AssignDailyTasks extends Command
                 // Add batch job for this user
                 if (!empty($taskTemplateIds)) {
                     $batchJobs[] = new AssignTaskBatch($user->id, $taskTemplateIds, 24);
-                    $userTaskCounts[$user->id] = count($taskTemplateIds);
+                    $userTaskData[$user->id] = [
+                        'count' => count($taskTemplateIds),
+                        'template_ids' => $taskTemplateIds
+                    ];
                     $assigned += count($taskTemplateIds);
                 }
 
@@ -143,22 +156,37 @@ class AssignDailyTasks extends Command
             $batch = Bus::batch($batchJobs)
                 ->name('Daily Task Assignment - ' . now()->format('Y-m-d'))
                 ->allowFailures()
-                ->finally(function () use ($userTaskCounts) {
+                ->finally(function () use ($userTaskData) {
                     // Send notifications after batch completes
                     $notificationService = app(NotificationService::class);
-                    $users = User::whereIn('id', array_keys($userTaskCounts))->get();
+                    $users = User::whereIn('id', array_keys($userTaskData))->get();
 
                     foreach ($users as $user) {
-                        $count = $userTaskCounts[$user->id] ?? 0;
-                        if ($count > 0) {
-                            try {
-                                $notificationService->send($user, 'tasks_assigned', [
-                                    'count' => $count,
-                                    'message' => "🎯 {$count} new tasks available! Start earning now.",
-                                ]);
-                            } catch (\Exception $e) {
-                                Log::error("Failed to notify user {$user->id}: " . $e->getMessage());
-                            }
+                        $userData = $userTaskData[$user->id] ?? null;
+                        if (!$userData || $userData['count'] == 0) {
+                            continue;
+                        }
+
+                        $count = $userData['count'];
+                        $templateIds = $userData['template_ids'];
+
+                        // Get average max_completions for urgency
+                        $avgMaxCompletions = TaskTemplate::whereIn('id', $templateIds)
+                            ->avg('max_completions');
+                        $avgMaxCompletions = (int) round($avgMaxCompletions);
+
+                        // Create urgency message
+                        $urgencyMessage = $avgMaxCompletions > 0
+                            ? "⚡ Limited spots! Only {$avgMaxCompletions} people can complete each task. First come, first served!"
+                            : "Start earning now!";
+
+                        try {
+                            $notificationService->send($user, 'tasks_assigned', [
+                                'count' => $count,
+                                'message' => "🎯 {$count} new tasks available! {$urgencyMessage}",
+                            ]);
+                        } catch (\Exception $e) {
+                            Log::error("Failed to notify user {$user->id}: " . $e->getMessage());
                         }
                     }
                 })

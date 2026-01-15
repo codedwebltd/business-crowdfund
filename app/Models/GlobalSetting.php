@@ -68,6 +68,8 @@ class GlobalSetting extends Model
 
         // System Controls
         'maintenance_mode',
+        'maintenance_end_at',
+        'admin_ip_whitelist',
         'new_registrations_enabled',
         'withdrawals_enabled',
         'referral_bonuses_enabled',
@@ -115,6 +117,8 @@ class GlobalSetting extends Model
         'ai_configuration',
         'ai_generation_frequency_hours',
         'min_task_templates_threshold',
+        'task_deactivation_days',
+        'task_deletion_days',
 
         // reCAPTCHA Settings
         'recaptcha_site_key',
@@ -150,6 +154,7 @@ class GlobalSetting extends Model
         'kyc_requirements' => 'array',
         'ai_configuration' => 'array',
         'star_requirements' => 'array',
+        'admin_ip_whitelist' => 'array',
 
         // Decimal columns
         'plan_upgrade_discount_percentage' => 'decimal:2',
@@ -174,6 +179,9 @@ class GlobalSetting extends Model
         'maximum_withdrawal' => 'decimal:2',
         'withdrawal_rate' => 'decimal:2',
 
+        // DateTime columns
+        'maintenance_end_at' => 'datetime',
+
         // Integer columns
         'pending_balance_maturation_hours' => 'integer',
         'referral_levels_depth' => 'integer',
@@ -184,6 +192,8 @@ class GlobalSetting extends Model
         'referral_threshold' => 'integer',
         'ai_generation_frequency_hours' => 'integer',
         'min_task_templates_threshold' => 'integer',
+        'task_deactivation_days' => 'integer',
+        'task_deletion_days' => 'integer',
     ];
 
     /**

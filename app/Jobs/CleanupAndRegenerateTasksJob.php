@@ -25,45 +25,58 @@ class CleanupAndRegenerateTasksJob implements ShouldQueue
     }
 
     /**
-     * Execute the job - Clean up old tasks and regenerate fresh ones
+     * Execute the job - Generate fresh tasks daily (Age-Based Assignment)
+     *
+     * Strategy:
+     * - Generate NEW tasks daily without deleting old ones
+     * - Deactivate tasks older than 7 days (prevent assignment but keep for history)
+     * - Delete tasks older than 30 days (permanent cleanup)
+     * - Assignment logic filters to only tasks created in last 48 hours
      */
     public function handle(): void
     {
-        Log::info('🧹 Starting nightly task cleanup and regeneration');
+        Log::info('🧹 Starting nightly task generation and cleanup');
 
         try {
-            // SAFETY CHECK: Verify all UserTasks have expired before cleanup
-            // Check if ANY tasks (regardless of status) haven't expired yet
-            // Using exists() instead of count() - stops at first match (efficient for millions of records)
-            $hasUnexpiredTasks = \App\Models\UserTask::where('expires_at', '>', now())->exists();
+            // Get cleanup settings from global settings
+            $settings = GlobalSetting::first();
+            $deactivationDays = $settings->task_deactivation_days ?? 7;
+            $deletionDays = $settings->task_deletion_days ?? 30;
 
-            if ($hasUnexpiredTasks) {
-                Log::warning("⚠️ Cleanup aborted! Found UserTasks that haven't expired yet.");
-                Log::warning("Cleanup should only run after all tasks expire (24hrs from assignment).");
-                return;
-            }
+            // Step 1: Deactivate old task templates
+            $deactivatedCount = TaskTemplate::where('created_at', '<', now()->subDays($deactivationDays))
+                ->where('is_active', true)
+                ->update(['is_active' => false]);
 
-            Log::info("✓ Safety check passed: All UserTasks have expired.");
+            Log::info("✓ Deactivated {$deactivatedCount} old task templates (>{$deactivationDays} days)");
 
-            // Step 1: Delete all existing task templates (CASCADE deletes expired UserTasks)
-            $deletedCount = TaskTemplate::query()->delete();
-            Log::info("✓ Deleted {$deletedCount} task templates");
+            // Step 2: Delete very old task templates to save space
+            $deletedCount = TaskTemplate::where('created_at', '<', now()->subDays($deletionDays))->delete();
+            Log::info("✓ Deleted {$deletedCount} expired task templates (>{$deletionDays} days)");
 
-            // Step 2: Trigger regeneration via command
-            Log::info('🚀 Triggering fresh task generation...');
+            // Step 3: Trigger fresh task generation (respects frequency settings)
+            Log::info('🚀 Checking if task generation is needed...');
 
-            Artisan::call('tasks:generate-templates', ['--force' => true]);
+            Artisan::call('tasks:generate-templates'); // No --force, respects frequency!
 
             $output = Artisan::output();
             Log::info('Task generation command output:', ['output' => $output]);
 
-            Log::info('✅ Nightly cleanup and regeneration completed successfully', [
-                'deleted_tasks' => $deletedCount,
+            // Step 4: Clean up expired UserTasks
+            $expiredUserTasks = \App\Models\UserTask::where('expires_at', '<', now()->subDays($deactivationDays))->delete();
+            Log::info("✓ Cleaned up {$expiredUserTasks} expired UserTasks (>{$deactivationDays} days)");
+
+            Log::info('✅ Nightly task generation and cleanup completed successfully', [
+                'deactivated_tasks' => $deactivatedCount,
+                'deleted_old_tasks' => $deletedCount,
+                'deleted_user_tasks' => $expiredUserTasks,
+                'deactivation_threshold' => "{$deactivationDays} days",
+                'deletion_threshold' => "{$deletionDays} days",
                 'timestamp' => now()->toDateTimeString()
             ]);
 
         } catch (\Exception $e) {
-            Log::error('❌ Nightly cleanup and regeneration failed', [
+            Log::error('❌ Nightly task generation and cleanup failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);

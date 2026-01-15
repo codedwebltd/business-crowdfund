@@ -18,12 +18,13 @@ class Kernel extends ConsoleKernel
         // Cleanup soft-deleted accounts after 30 days (runs daily at 2 AM)
         $schedule->command('cleanup:soft-deletes')->dailyAt('02:00');
 
-        // ===== DAILY TASK CYCLE (FIXED SEQUENCE) =====
-        // 1. Cleanup old task templates at 11:59 PM (CASCADE deletes yesterday's expired UserTasks - expected!)
-        $schedule->job(new \App\Jobs\CleanupAndRegenerateTasksJob)->dailyAt('23:59');
+        // ===== DAILY TASK CYCLE (AGE-BASED ASSIGNMENT) =====
+        // UserTasks expire at 00:01 AM (24 hours after assignment)
+        // 1. Generate fresh tasks + cleanup old ones at 00:05 AM (after tasks expire)
+        $schedule->job(new \App\Jobs\CleanupAndRegenerateTasksJob)->dailyAt('00:05');
 
-        // 2. Assign fresh tasks at 12:01 AM (after cleanup and regeneration)
-        $schedule->command('tasks:assign-daily')->dailyAt('00:01');
+        // 2. Assign fresh tasks at 00:10 AM (after generation completes)
+        $schedule->command('tasks:assign-daily')->dailyAt('00:10');
 
         // Reset weekly task counters (every Monday at midnight)
         $schedule->call(function () {
@@ -46,6 +47,17 @@ class Kernel extends ConsoleKernel
 
         // Calculate star ratings for all active users (runs daily at 1:00 AM)
         $schedule->command('performance:calculate')->dailyAt('01:00');
+
+        // ===== CONTENT POOL & TASK CLEANUP =====
+        // Fill content pool daily at 2:00 AM (adds fresh content for task generation)
+        // DEFAULT: Groq AI (country-specific, realistic surveys & reviews - ENABLED)
+        $schedule->command('content:fill-pool --videos=30 --surveys=30 --reviews=25')->dailyAt('02:00');
+
+        // ALTERNATIVE: Use Trivia API for general knowledge surveys (uncomment if needed)
+        // $schedule->command('content:fill-pool --videos=30 --surveys=50 --reviews=25 --use-trivia')->dailyAt('02:00');
+
+        // Cleanup old tasks daily at 3:00 AM (deactivates after 7 days, deletes after 30 days)
+        // $schedule->command('tasks:cleanup')->dailyAt('03:00');
     }
 
     /**

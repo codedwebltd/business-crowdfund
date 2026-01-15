@@ -58,6 +58,8 @@ class WithdrawalNotification extends Notification
             'star_rating_demoted' => '⚠️ Star Rating Update',
             'payment_rejected' => '❌ Payment Rejected',
             'plan_upgrade_available' => '🎁 Plan Upgrade Available!',
+            'new_support_ticket' => '🎫 New Support Ticket',
+            'new_support_message' => '💬 New Support Message',
             default => 'Notification',
         };
     }
@@ -86,6 +88,8 @@ class WithdrawalNotification extends Notification
             'star_rating_demoted' => "⚠️ Your performance rating has been adjusted to " . ($this->data['new_stars'] ?? 0) . " stars. " . ($this->data['reason'] ?? 'Stay active to improve your rating!'),
             'payment_rejected' => "Your activation payment has been rejected. Reason: " . ($this->data['reason'] ?? 'Not specified') . ". Please contact support or submit a new payment proof.",
             'plan_upgrade_available' => "🎁 Congratulations! You now qualify for the " . ($this->data['qualified_plan_name'] ?? 'Premium') . " plan with a special " . ($this->data['discount_percentage'] ?? 20) . "% discount!",
+            'new_support_ticket' => "🎫 New support ticket #" . ($this->data['ticket_number'] ?? '') . " from " . ($this->data['from'] ?? 'a user') . ". Subject: " . ($this->data['subject'] ?? 'Support Request') . ". Please respond promptly.",
+            'new_support_message' => "💬 New message in ticket #" . ($this->data['ticket_number'] ?? '') . " from " . ($this->data['from'] ?? 'user') . ": \"" . ($this->data['message_preview'] ?? 'New message') . "\"",
             default => $this->data['message'] ?? '',
         };
     }
@@ -114,6 +118,8 @@ class WithdrawalNotification extends Notification
             'star_rating_demoted' => '📉',
             'payment_rejected' => '❌',
             'plan_upgrade_available' => '🎁',
+            'new_support_ticket' => '🎫',
+            'new_support_message' => '💬',
             default => '🔔',
         };
     }

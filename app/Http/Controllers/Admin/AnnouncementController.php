@@ -76,6 +76,14 @@ class AnnouncementController extends Controller
         $sendEmail = $validated['send_email'] ?? false;
         unset($validated['send_email']);
 
+        // Ensure dates are stored as pure dates (no time component)
+        if (isset($validated['start_date']) && $validated['start_date']) {
+            $validated['start_date'] = \Carbon\Carbon::parse($validated['start_date'])->format('Y-m-d');
+        }
+        if (isset($validated['end_date']) && $validated['end_date']) {
+            $validated['end_date'] = \Carbon\Carbon::parse($validated['end_date'])->format('Y-m-d');
+        }
+
         $announcement = Announcement::create($validated);
 
         if ($sendEmail) {
@@ -123,6 +131,14 @@ class AnnouncementController extends Controller
     'link_text' => 'nullable|string|max:50',
     'send_email' => 'boolean',
 ]);
+
+        // Ensure dates are stored as pure dates (no time component)
+        if (isset($validated['start_date']) && $validated['start_date']) {
+            $validated['start_date'] = \Carbon\Carbon::parse($validated['start_date'])->format('Y-m-d');
+        }
+        if (isset($validated['end_date']) && $validated['end_date']) {
+            $validated['end_date'] = \Carbon\Carbon::parse($validated['end_date'])->format('Y-m-d');
+        }
 
         $announcement->update($validated);
 

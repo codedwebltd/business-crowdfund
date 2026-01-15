@@ -67,6 +67,111 @@
       </div>
     </div>
 
+    <!-- AI Testimonial Generator -->
+    <div class="bg-gradient-to-br from-orange-500 to-purple-600 rounded-2xl shadow-xl border border-white/20 p-6 mb-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-white">AI Testimonial Generator</h3>
+          <p class="text-white/80 text-sm">Generate realistic testimonials using Groq AI based on {{ settings.country_of_operation || 'NGA' }}</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-white text-sm font-semibold mb-2">Number of Testimonials (1-20)</label>
+          <input
+            v-model.number="aiGenerateCount"
+            type="number"
+            min="1"
+            max="20"
+            class="w-full px-4 py-3 rounded-xl border-2 border-white/30 bg-white/10 backdrop-blur-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/50"
+            placeholder="Enter count (1-20)"
+          >
+        </div>
+        <div class="flex items-end">
+          <button
+            @click="generateTestimonialsWithAI"
+            :disabled="aiGenerating || !aiGenerateCount || aiGenerateCount < 1 || aiGenerateCount > 20"
+            class="w-full py-3 px-6 bg-white text-purple-600 rounded-xl font-bold hover:bg-white/90 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            <svg v-if="aiGenerating" class="animate-spin w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            {{ aiGenerating ? 'Generating...' : 'Generate with AI' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Generated Preview -->
+    <div v-if="generatedTestimonials.length > 0" class="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-xl font-bold text-gray-900">Preview Generated Testimonials</h3>
+          <p class="text-gray-600 text-sm">{{ generatedTestimonials.length }} testimonials ready to publish</p>
+        </div>
+        <button @click="generatedTestimonials = []" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-gray-100 p-2">
+        <div v-for="(test, index) in generatedTestimonials" :key="index" class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border-2 border-purple-200 hover:shadow-lg transition-all">
+          <div class="mb-2">
+            <input
+              v-model="test.name"
+              class="w-full px-3 py-2 text-sm font-bold text-gray-900 bg-white rounded-lg border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="Name"
+            >
+          </div>
+          <textarea
+            v-model="test.message"
+            rows="4"
+            class="w-full px-3 py-2 text-sm text-gray-900 bg-white rounded-lg border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+            placeholder="Message"
+          ></textarea>
+          <button
+            @click="generatedTestimonials.splice(index, 1)"
+            class="mt-2 text-xs text-red-600 hover:text-red-700 font-semibold flex items-center gap-1"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+            Remove
+          </button>
+        </div>
+      </div>
+
+      <div class="flex gap-3 mt-6 pt-6 border-t border-gray-200">
+        <button
+          @click="publishGeneratedTestimonials"
+          :disabled="publishing"
+          class="flex-1 py-3 px-6 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-green-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          <svg v-if="publishing" class="animate-spin w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          {{ publishing ? 'Publishing...' : `Publish All ${generatedTestimonials.length} Testimonials` }}
+        </button>
+        <button
+          @click="generatedTestimonials = []"
+          class="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-all"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+
     <!-- Filters -->
     <div class="bg-white rounded-xl shadow-md border border-gray-100 p-4 mb-6">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -324,6 +429,10 @@ const props = defineProps({
 const statusFilter = ref('PENDING');
 const searchQuery = ref('');
 const viewingTestimonial = ref(null);
+const aiGenerateCount = ref(5);
+const aiGenerating = ref(false);
+const generatedTestimonials = ref([]);
+const publishing = ref(false);
 
 const filteredTestimonials = computed(() => {
   let filtered = props.testimonials.filter(t => t.status === statusFilter.value);
@@ -411,6 +520,95 @@ const rejectTestimonial = (id) => {
             icon: 'success',
             title: 'Testimonial Rejected',
             text: 'User has been notified.',
+            confirmButtonColor: '#ef4444'
+          });
+        }
+      });
+    }
+  });
+};
+
+const generateTestimonialsWithAI = async () => {
+  if (aiGenerateCount.value < 1 || aiGenerateCount.value > 20) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Invalid Count',
+      text: 'Please enter a number between 1 and 20',
+      confirmButtonColor: '#ef4444'
+    });
+    return;
+  }
+
+  aiGenerating.value = true;
+
+  try {
+    const response = await fetch('/admin/testimonials/generate-ai', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+      },
+      body: JSON.stringify({ count: aiGenerateCount.value })
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.testimonials) {
+      generatedTestimonials.value = data.testimonials;
+      Swal.fire({
+        icon: 'success',
+        title: 'Testimonials Generated!',
+        text: `${data.testimonials.length} testimonials generated successfully. Review and edit before publishing.`,
+        confirmButtonColor: '#10b981'
+      });
+    } else {
+      throw new Error(data.error || 'Failed to generate testimonials');
+    }
+  } catch (error) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Generation Failed',
+      text: error.message || 'Failed to generate testimonials. Please try again.',
+      confirmButtonColor: '#ef4444'
+    });
+  } finally {
+    aiGenerating.value = false;
+  }
+};
+
+const publishGeneratedTestimonials = () => {
+  Swal.fire({
+    title: 'Publish All Testimonials?',
+    text: `This will publish ${generatedTestimonials.value.length} testimonials as APPROVED.`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Yes, publish all',
+    confirmButtonColor: '#10b981',
+    cancelButtonColor: '#6b7280'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      publishing.value = true;
+
+      router.post('/admin/testimonials/bulk-publish', {
+        testimonials: generatedTestimonials.value
+      }, {
+        preserveScroll: false,
+        onSuccess: () => {
+          generatedTestimonials.value = [];
+          publishing.value = false;
+          Swal.fire({
+            icon: 'success',
+            title: 'Published!',
+            text: 'All testimonials have been published successfully.',
+            confirmButtonColor: '#10b981'
+          });
+        },
+        onError: () => {
+          publishing.value = false;
+          Swal.fire({
+            icon: 'error',
+            title: 'Publishing Failed',
+            text: 'Failed to publish testimonials. Please try again.',
             confirmButtonColor: '#ef4444'
           });
         }

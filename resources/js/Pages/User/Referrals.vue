@@ -97,7 +97,7 @@
           </div>
         </div>
         <div class="text-xs text-gray-400 mb-1">Activation Bonus</div>
-        <div class="text-2xl font-bold text-white">₦{{ formatNumber(stats.activationEarnings) }}</div>
+        <div class="text-2xl font-bold text-white">{{ currencySymbol }}{{ formatNumber(stats.activationEarnings) }}</div>
       </div>
 
       <!-- Total Earnings -->
@@ -110,7 +110,7 @@
           </div>
         </div>
         <div class="text-xs text-gray-400 mb-1">Total Earnings</div>
-        <div class="text-2xl font-bold text-white">₦{{ formatNumber(stats.totalEarnings) }}</div>
+        <div class="text-2xl font-bold text-white">{{ currencySymbol }}{{ formatNumber(stats.totalEarnings) }}</div>
       </div>
     </div>
 
@@ -126,14 +126,125 @@
     </div>
 
     <!-- Referral Tree -->
-    <div class="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-4 md:p-6">
+    <div class="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-4 md:p-6 mb-6">
       <h3 class="text-white font-bold text-base md:text-lg mb-2">Referral Tree</h3>
       <ReferralTree
         v-if="treeData"
         :node="treeData"
+        :currencySymbol="currencySymbol"
         @nodeClick="showUserModal"
       />
       <p v-else class="text-gray-400 text-center py-8">No referrals yet. Share your link to get started!</p>
+    </div>
+
+    <!-- Network Statistics Card (Agents Only) -->
+    <div v-if="networkStats" class="group relative bg-gradient-to-br from-green-500/10 via-blue-600/10 to-transparent backdrop-blur-xl rounded-2xl border border-green-500/30 p-6 hover:border-green-500/50 hover:shadow-2xl hover:shadow-green-500/20 transition-all duration-300 overflow-hidden">
+      <!-- Animated Background -->
+      <div class="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-green-500/10 to-blue-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-500"></div>
+
+      <div class="relative z-10">
+        <!-- Header -->
+        <div class="flex items-center gap-3 mb-6">
+          <div class="p-3 bg-gradient-to-br from-green-500 to-blue-600 rounded-2xl shadow-lg shadow-green-500/30">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-white font-bold text-lg">Network Performance</h3>
+            <p class="text-gray-400 text-xs">Financial overview of your entire referral network</p>
+          </div>
+        </div>
+
+        <!-- Explanation Banner -->
+        <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
+          <p class="text-blue-300 text-sm leading-relaxed">
+            <span class="font-semibold">How Net Gain Works:</span> This shows the total value your network has contributed to the system (deposits + upgrades) minus what has been paid out (withdrawals). A positive number indicates strong network retention and growth.
+          </p>
+        </div>
+
+        <!-- Main Stats Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <!-- Total Deposits -->
+          <div class="bg-gradient-to-br from-green-500/20 to-green-600/10 border border-green-500/30 rounded-xl p-4 hover:shadow-lg hover:shadow-green-500/20 transition-all">
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              <p class="text-green-400 text-xs font-semibold uppercase tracking-wider">Total Deposits</p>
+            </div>
+            <p class="text-white text-xl sm:text-2xl font-bold break-words">{{ currencySymbol }}{{ formatNumber(networkStats.totalNetworkDeposits) }}</p>
+            <p class="text-gray-400 text-[10px] mt-1">Network size: {{ networkStats.networkSize }} members</p>
+          </div>
+
+          <!-- Total Withdrawals -->
+          <div class="bg-gradient-to-br from-red-500/20 to-red-600/10 border border-red-500/30 rounded-xl p-4 hover:shadow-lg hover:shadow-red-500/20 transition-all">
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+              </svg>
+              <p class="text-red-400 text-xs font-semibold uppercase tracking-wider">Total Withdrawals</p>
+            </div>
+            <p class="text-white text-xl sm:text-2xl font-bold break-words">{{ currencySymbol }}{{ formatNumber(networkStats.totalNetworkWithdrawals) }}</p>
+            <p class="text-gray-400 text-[10px] mt-1">Paid out to network</p>
+          </div>
+
+          <!-- Net Gain -->
+          <div class="sm:col-span-2 lg:col-span-1 bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/30 rounded-xl p-4 hover:shadow-lg hover:shadow-purple-500/20 transition-all">
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+              </svg>
+              <p class="text-purple-400 text-xs font-semibold uppercase tracking-wider">Net Gain</p>
+            </div>
+            <p :class="['text-xl sm:text-2xl font-bold break-words', networkStats.netGain >= 0 ? 'text-green-400' : 'text-red-400']">
+              {{ currencySymbol }}{{ formatNumber(networkStats.netGain) }}
+            </p>
+            <p class="text-gray-400 text-[10px] mt-1">Deposits - Withdrawals</p>
+          </div>
+        </div>
+
+        <!-- Detailed Breakdown -->
+        <div class="bg-white/5 rounded-xl p-4 border border-white/10">
+          <h4 class="text-white font-semibold text-sm mb-4 flex items-center gap-2">
+            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Deposit Breakdown
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div class="flex justify-between items-center bg-white/5 rounded-lg px-3 py-2">
+              <span class="text-gray-400">Activations:</span>
+              <span class="text-white font-semibold">{{ currencySymbol }}{{ formatNumber(networkStats.totalActivations) }}</span>
+            </div>
+            <div class="flex justify-between items-center bg-white/5 rounded-lg px-3 py-2">
+              <span class="text-gray-400">Upgrades:</span>
+              <span class="text-white font-semibold">{{ currencySymbol }}{{ formatNumber(networkStats.totalUpgrades) }}</span>
+            </div>
+          </div>
+
+          <h4 class="text-white font-semibold text-sm mt-6 mb-4 flex items-center gap-2">
+            <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Earnings Breakdown
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+            <div class="flex justify-between items-center bg-white/5 rounded-lg px-3 py-2">
+              <span class="text-gray-400 text-xs">Tasks:</span>
+              <span class="text-white font-semibold text-xs">{{ currencySymbol }}{{ formatNumber(networkStats.totalTaskEarnings) }}</span>
+            </div>
+            <div class="flex justify-between items-center bg-white/5 rounded-lg px-3 py-2">
+              <span class="text-gray-400 text-xs">Referrals:</span>
+              <span class="text-white font-semibold text-xs">{{ currencySymbol }}{{ formatNumber(networkStats.totalReferralBonuses) }}</span>
+            </div>
+            <div class="flex justify-between items-center bg-white/5 rounded-lg px-3 py-2">
+              <span class="text-gray-400 text-xs">Team:</span>
+              <span class="text-white font-semibold text-xs">{{ currencySymbol }}{{ formatNumber(networkStats.totalTeamCommissions) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- User Stats Modal -->
@@ -191,6 +302,15 @@ const props = defineProps({
   stats: Object,
   treeData: Object,
   commissionRates: Object,
+  networkStats: Object,
+  currencyCode: {
+    type: String,
+    default: 'NGN'
+  },
+  currencySymbol: {
+    type: String,
+    default: '₦'
+  }
 });
 
 const selectedUser = ref(null);

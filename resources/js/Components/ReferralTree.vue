@@ -4,6 +4,7 @@
       <TreeNode
         :node="node"
         :isRoot="true"
+        :currencySymbol="currencySymbol"
         @nodeClick="$emit('nodeClick', $event)"
       />
     </div>
@@ -14,7 +15,11 @@
 import TreeNode from '@/Components/TreeNode.vue';
 
 defineProps({
-  node: Object
+  node: Object,
+  currencySymbol: {
+    type: String,
+    default: '₦'
+  }
 });
 
 defineEmits(['nodeClick']);

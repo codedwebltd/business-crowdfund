@@ -17,7 +17,7 @@ class User extends Authenticatable
     protected $fillable = [
         'phone_number', 'full_name', 'email', 'date_of_birth', 'password', 'phone_verified_at',
         'otp_code', 'otp_expires_at', 'google2fa_secret', 'google2fa_enabled', 'backup_codes',
-        'role', 'bank_name', 'account_number', 'account_name', 'wallet_details',
+        'role', 'user_type', 'bank_name', 'account_number', 'account_name', 'wallet_details',
         'referral_code', 'referred_by_id', 'plan_id', 'activation_amount', 'activation_date',
         'status', 'rank_id', 'direct_referrals_count', 'total_team_size',
         'last_task_completed_at', 'total_tasks_completed', 'tasks_completed_this_week',
@@ -91,6 +91,8 @@ class User extends Authenticatable
 
     // Helper Methods
     public function isAdmin(): bool { return $this->role === 1; }
+    public function isAgent(): bool { return $this->user_type === 'AGENT'; }
+    public function isNormalUser(): bool { return $this->user_type === 'USER'; }
     public function isPhoneVerified(): bool { return !is_null($this->phone_verified_at); }
     public function isActive(): bool { return $this->status === 'ACTIVE'; }
     public function hasCompletedKYC(): bool { return !is_null($this->kyc_verified_at); }

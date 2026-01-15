@@ -370,7 +370,7 @@ class TaskController extends Controller
             $wallet->increment('total_earned', $task->reward_amount);
 
             // Create transaction record
-            $maturationHours = $settings->earnings_maturation_hours ?? 72;
+            $maturationHours = $settings->pending_balance_maturation_hours ?? 72;
             $transaction = Transaction::create([
                 'user_id' => auth()->id(),
                 'transaction_type' => 'TASK_EARNING',
@@ -407,7 +407,7 @@ class TaskController extends Controller
 
             // Send task completion notification to the user
             try {
-                $currencySymbol = $settings->currency_symbol ?? '₦';
+                $currencySymbol = $settings->platform_currency === 'NGN' ? '₦' : $settings->platform_currency;
                 $notificationService = app(\App\Services\NotificationService::class);
                 $notificationService->send($user, 'task_completed', [
                     'amount' => $task->reward_amount,
@@ -489,7 +489,7 @@ class TaskController extends Controller
                     'processed_at' => null, // Will be set when batch job processes
                 ]);
 
-                $currencySymbol = $settings->currency_symbol ?? '₦';
+                $currencySymbol = $settings->platform_currency === 'NGN' ? '₦' : $settings->platform_currency;
                 logger()->info("Commission recorded in ledger: {$currencySymbol}{$commissionAmount} for user {$uplineUserId} (Level {$level})");
             }
 
